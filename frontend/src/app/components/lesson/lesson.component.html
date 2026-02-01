@@ -1,0 +1,31 @@
+<article class="bg-white rounded shadow p-4" role="article" aria-labelledby="lesson-title-{{content.id}}">
+  <h3 id="lesson-title-{{content.id}}" class="text-lg font-semibold mb-2">{{ content.title }}</h3>
+
+  <ng-container [ngSwitch]="content.type">
+    <figure *ngSwitchCase="'image'" class="mb-2">
+      <img [src]="content.url" [attr.alt]="content.alt || null" class="w-full h-auto rounded" />
+      <figcaption *ngIf="content.alt" class="text-sm text-gray-600 mt-1">{{ content.alt }}</figcaption>
+      <div *ngIf="!content.alt" class="text-red-600 text-sm mt-1" role="alert">Alt-text requerido para imágenes por accesibilidad.</div>
+    </figure>
+
+    <div *ngSwitchCase="'video'" class="mb-2">
+      <video class="w-full rounded" controls [attr.aria-describedby]="'transcription-'+content.id">
+        <source [src]="content.url" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+      <aside id="transcription-{{content.id}}" class="mt-2 p-2 bg-gray-50 border rounded" aria-label="Transcripción del video">
+        <h4 class="font-medium">Transcripción</h4>
+        <p *ngIf="content.transcription; else noTrans">{{ content.transcription }}</p>
+        <ng-template #noTrans><p class="text-sm text-gray-600">No hay transcripción disponible.</p></ng-template>
+      </aside>
+    </div>
+
+    <div *ngSwitchCase="'pdf'">
+      <a [href]="content.url" target="_blank" rel="noopener" class="text-blue-600">Abrir PDF</a>
+    </div>
+
+    <div *ngSwitchCase="'enlace'">
+      <a [href]="content.url" target="_blank" rel="noopener" class="text-blue-600">Abrir recurso</a>
+    </div>
+  </ng-container>
+</article>

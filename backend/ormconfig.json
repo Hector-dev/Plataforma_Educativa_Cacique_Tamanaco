@@ -1,0 +1,6 @@
+{
+  "type": "postgres",
+  "url": "postgres://tamanaco:changeme@localhost:5432/tamanaco_db",
+  "entities": ["dist/**/*.entity{.ts,.js}"],
+  "synchronize": true
+}

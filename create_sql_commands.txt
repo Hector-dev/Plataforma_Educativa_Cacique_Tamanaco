@@ -1,0 +1,147 @@
+-- Comandos SQL completos para crear la base SQLite
+-- Habilitar llaves foráneas por conexión:
+PRAGMA foreign_keys = ON;
+
+-- Esquema SQLite adaptado desde schema.sql (PostgreSQL)
+-- Sistema Educativo Cacique Tamanaco (Offline-First)
+
+-- NOTA: En SQLite no hay ENUM ni JSONB nativo idéntico; se usan CHECK para valores permitidos
+-- y se almacena JSON como TEXT con validación via json_valid().
+
+-- Tabla usuarios
+CREATE TABLE IF NOT EXISTS usuarios (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  cedula TEXT NOT NULL,
+  nombre TEXT NOT NULL,
+  apellido TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  rol TEXT NOT NULL CHECK(rol IN ('Estudiante','Docente','Administrativo','Directivo')),
+  fecha_creacion TEXT NOT NULL DEFAULT (datetime('now'))
+);
+-- Usuarios del sistema: estudiantes, docentes, administrativos y directivos.
+
+CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
+
+-- Perfiles de estudiante
+CREATE TABLE IF NOT EXISTS perfiles_estudiante (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  usuario_id TEXT NOT NULL UNIQUE,
+  tipo_discapacidad TEXT NOT NULL DEFAULT 'Ninguna' CHECK(tipo_discapacidad IN ('Motora','Auditiva','Visual','Intelectual','Autismo','TDAH','Ninguna')),
+  necesidades_especificas TEXT,
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+);
+
+-- Secciones
+CREATE TABLE IF NOT EXISTS secciones (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  nombre TEXT NOT NULL,
+  grado_año TEXT NOT NULL,
+  periodo_escolar TEXT NOT NULL,
+  fecha_creacion TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Clases
+CREATE TABLE IF NOT EXISTS clases (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  nombre_materia TEXT NOT NULL,
+  seccion_id TEXT NOT NULL,
+  docente_id TEXT,
+  -- filtro_accesibilidad se guarda como JSON array de strings (ej: ['Subtitulos','TextoALT'])
+  filtro_accesibilidad TEXT DEFAULT '[]' CHECK(json_valid(filtro_accesibilidad)),
+  cupos_maximos INTEGER,
+  fecha_creacion TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (seccion_id) REFERENCES secciones(id) ON DELETE CASCADE,
+  FOREIGN KEY (docente_id) REFERENCES usuarios(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_clases_seccion ON clases(seccion_id);
+
+-- Contenidos de clase
+CREATE TABLE IF NOT EXISTS contenidos_clase (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  clase_id TEXT NOT NULL,
+  titulo TEXT NOT NULL,
+  tipo_archivo TEXT NOT NULL CHECK(tipo_archivo IN ('Video','PDF','Enlace')),
+  url_archivo TEXT,
+  metadatos_accesibilidad TEXT CHECK(json_valid(metadatos_accesibilidad)),
+  fecha_creacion TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (clase_id) REFERENCES clases(id) ON DELETE CASCADE
+);
+
+-- Actividades (evaluaciones)
+CREATE TABLE IF NOT EXISTS actividades (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  clase_id TEXT NOT NULL,
+  titulo TEXT NOT NULL,
+  descripcion TEXT,
+  fecha_tope TEXT,
+  ponderacion NUMERIC(5,2) NOT NULL DEFAULT 0,
+  tipo_evaluacion TEXT NOT NULL CHECK(tipo_evaluacion IN ('Quiz','Tarea','Proyecto')),
+  fecha_creacion TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (clase_id) REFERENCES clases(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_actividades_clase ON actividades(clase_id);
+
+-- Entregas de estudiantes
+CREATE TABLE IF NOT EXISTS entregas_estudiantes (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  actividad_id TEXT NOT NULL,
+  estudiante_id TEXT NOT NULL,
+  archivo_url TEXT,
+  fecha_entrega TEXT,
+  comentarios TEXT,
+  fecha_creacion TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (actividad_id) REFERENCES actividades(id) ON DELETE CASCADE,
+  FOREIGN KEY (estudiante_id) REFERENCES usuarios(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_entregas_actividad ON entregas_estudiantes(actividad_id);
+
+-- Notas
+CREATE TABLE IF NOT EXISTS notas (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  entrega_id TEXT NOT NULL UNIQUE,
+  calificacion_preliminar NUMERIC(7,2),
+  calificacion_definitiva NUMERIC(7,2),
+  retroalimentacion TEXT,
+  estado TEXT NOT NULL DEFAULT 'Borrador' CHECK(estado IN ('Borrador','Publicada')),
+  fecha_creacion TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (entrega_id) REFERENCES entregas_estudiantes(id) ON DELETE CASCADE
+);
+
+-- Asistencias
+CREATE TABLE IF NOT EXISTS asistencias (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  usuario_id TEXT NOT NULL,
+  fecha TEXT NOT NULL,
+  estado TEXT NOT NULL CHECK(estado IN ('Presente','Ausente','Justificado','Retraso')),
+  fecha_creacion TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+);
+
+-- Documentos digitales
+CREATE TABLE IF NOT EXISTS documentos_digitales (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  usuario_id TEXT NOT NULL,
+  tipo_documento TEXT NOT NULL CHECK(tipo_documento IN ('Cédula','Informe Médico','Partida Nacimiento')),
+  url_archivo TEXT NOT NULL,
+  validado INTEGER NOT NULL DEFAULT 0,
+  fecha_subida TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+);
+
+-- Logs de sincronización (tablas_afectadas como JSON array de strings)
+CREATE TABLE IF NOT EXISTS logs_sincronizacion (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  dispositivo_origen TEXT NOT NULL,
+  fecha TEXT NOT NULL DEFAULT (datetime('now')),
+  tablas_afectadas TEXT NOT NULL CHECK(json_valid(tablas_afectadas))
+);
+
+-- Índices adicionales
+CREATE INDEX IF NOT EXISTS idx_clases_docente ON clases(docente_id);
+CREATE INDEX IF NOT EXISTS idx_entregas_estudiante ON entregas_estudiantes(estudiante_id);
+
+-- Fin del esquema SQLite
