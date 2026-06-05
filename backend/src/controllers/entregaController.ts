@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query } from '../db';
 
@@ -118,7 +119,7 @@ export const crearEntrega = async (req: Request, res: Response): Promise<void> =
             return;
         }
 
-        console.error('[EntregaController] Error al crear entrega:', error);
+        logger.error({ err: error }, '[EntregaController] Error al crear entrega:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al registrar la entrega',

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query } from '../db';
 
@@ -86,7 +87,7 @@ export const rendimientoCurso = async (
             data: result.rows,
         });
     } catch (error: any) {
-        console.error(
+        logger.error(
             '[ReporteController] Error al generar reporte de rendimiento:',
             error
         );
@@ -124,7 +125,7 @@ export const asistenciaGeneral = async (_req: Request, res: Response): Promise<v
 
         res.json({ success: true, data: result.rows });
     } catch (error: any) {
-        console.error('[ReporteController] Error en asistencia general:', error);
+        logger.error({ err: error }, '[ReporteController] Error en asistencia general:');
         res.status(500).json({ success: false, message: 'Error al generar reporte de asistencia general' });
     }
 };
@@ -163,7 +164,7 @@ export const asistenciaPorCurso = async (req: Request, res: Response): Promise<v
 
         res.json({ success: true, data: result.rows });
     } catch (error: any) {
-        console.error('[ReporteController] Error en asistencia por curso:', error);
+        logger.error({ err: error }, '[ReporteController] Error en asistencia por curso:');
         res.status(500).json({ success: false, message: 'Error al generar reporte de asistencia por curso' });
     }
 };
@@ -189,7 +190,7 @@ export const estudiantesPorGenero = async (_req: Request, res: Response): Promis
 
         res.json({ success: true, data: result.rows, total });
     } catch (error: any) {
-        console.error('[ReporteController] Error en estudiantes por género:', error);
+        logger.error({ err: error }, '[ReporteController] Error en estudiantes por género:');
         res.status(500).json({ success: false, message: 'Error al generar reporte de estudiantes por género' });
     }
 };

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query } from '../db';
 
@@ -45,7 +46,7 @@ export const crearClase = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        console.error('[ClaseController] Error al crear clase:', error);
+        logger.error({ err: error }, '[ClaseController] Error al crear clase:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al crear la clase',
@@ -82,7 +83,7 @@ export const listarClasesPorCurso = async (req: Request, res: Response): Promise
             total: result.rowCount,
         });
     } catch (error) {
-        console.error('[ClaseController] Error al listar clases por curso:', error);
+        logger.error({ err: error }, '[ClaseController] Error al listar clases por curso:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al listar las clases',
@@ -125,7 +126,7 @@ export const obtenerClase = async (req: Request, res: Response): Promise<void> =
             data: result.rows[0],
         });
     } catch (error) {
-        console.error('[ClaseController] Error al obtener clase:', error);
+        logger.error({ err: error }, '[ClaseController] Error al obtener clase:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al obtener la clase',
@@ -205,7 +206,7 @@ export const actualizarClase = async (req: Request, res: Response): Promise<void
             data: result.rows[0],
         });
     } catch (error) {
-        console.error('[ClaseController] Error al actualizar clase:', error);
+        logger.error({ err: error }, '[ClaseController] Error al actualizar clase:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al actualizar la clase',
@@ -247,7 +248,7 @@ export const eliminarClase = async (req: Request, res: Response): Promise<void> 
             data: result.rows[0],
         });
     } catch (error) {
-        console.error('[ClaseController] Error al eliminar clase:', error);
+        logger.error({ err: error }, '[ClaseController] Error al eliminar clase:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al eliminar la clase',

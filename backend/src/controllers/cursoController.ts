@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query } from '../db';
 
@@ -39,7 +40,7 @@ export const crearCurso = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        console.error('[CursoController] Error al crear curso:', error);
+        logger.error({ err: error }, '[CursoController] Error al crear curso:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al crear el curso',
@@ -77,7 +78,7 @@ export const listarCursos = async (req: Request, res: Response): Promise<void> =
             totalPages: Math.ceil(total / limit),
         });
     } catch (error) {
-        console.error('[CursoController] Error al listar cursos:', error);
+        logger.error({ err: error }, '[CursoController] Error al listar cursos:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al listar cursos',
@@ -102,7 +103,7 @@ export const listarMisCursos = async (req: Request, res: Response): Promise<void
         );
         res.json({ success: true, data: result.rows });
     } catch (error) {
-        console.error('[CursoController] Error al listar mis cursos:', error);
+        logger.error({ err: error }, '[CursoController] Error al listar mis cursos:');
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 };
@@ -142,7 +143,7 @@ export const obtenerCurso = async (req: Request, res: Response): Promise<void> =
             data: result.rows[0],
         });
     } catch (error) {
-        console.error('[CursoController] Error al obtener curso:', error);
+        logger.error({ err: error }, '[CursoController] Error al obtener curso:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al obtener el curso',
@@ -214,7 +215,7 @@ export const actualizarCurso = async (req: Request, res: Response): Promise<void
             data: result.rows[0],
         });
     } catch (error) {
-        console.error('[CursoController] Error al actualizar curso:', error);
+        logger.error({ err: error }, '[CursoController] Error al actualizar curso:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al actualizar el curso',
@@ -256,7 +257,7 @@ export const eliminarCurso = async (req: Request, res: Response): Promise<void> 
             data: result.rows[0],
         });
     } catch (error) {
-        console.error('[CursoController] Error al eliminar curso:', error);
+        logger.error({ err: error }, '[CursoController] Error al eliminar curso:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al eliminar el curso',
@@ -328,7 +329,7 @@ export const matricularEstudiante = async (req: Request, res: Response): Promise
             });
             return;
         }
-        console.error('[CursoController] Error al matricular:', error);
+        logger.error({ err: error }, '[CursoController] Error al matricular:');
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 };
@@ -354,7 +355,7 @@ export const listarMatriculados = async (req: Request, res: Response): Promise<v
 
         res.json({ success: true, data: result.rows });
     } catch (error) {
-        console.error('[CursoController] Error al listar matriculados:', error);
+        logger.error({ err: error }, '[CursoController] Error al listar matriculados:');
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 };
@@ -388,7 +389,7 @@ export const retirarEstudiante = async (req: Request, res: Response): Promise<vo
             data: result.rows[0],
         });
     } catch (error) {
-        console.error('[CursoController] Error al retirar estudiante:', error);
+        logger.error({ err: error }, '[CursoController] Error al retirar estudiante:');
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 };
@@ -582,7 +583,7 @@ export const obtenerDocumentoCurso = async (req: Request, res: Response): Promis
 
         res.json({ success: true, data: documento });
     } catch (error) {
-        console.error('[CursoController] Error al obtener documento del curso:', error);
+        logger.error({ err: error }, '[CursoController] Error al obtener documento del curso:');
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 };
@@ -932,7 +933,7 @@ export const guardarDocumentoCurso = async (req: Request, res: Response): Promis
         });
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('[CursoController] Error al guardar documento del curso:', error);
+        logger.error({ err: error }, '[CursoController] Error al guardar documento del curso:');
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     } finally {
         client.release();

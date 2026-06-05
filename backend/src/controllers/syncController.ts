@@ -1,5 +1,6 @@
+import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
-import pool from '../db';
+import { query, getClient } from '../db';
 
 // ============================================================
 // Endpoint de Sincronización Masiva (Offline-First)
@@ -44,7 +45,7 @@ export const syncData = async (req: Request, res: Response): Promise<void> => {
         return;
     }
 
-    const client = await pool.connect();
+    const client = await getClient();
 
     try {
         // ============================================================
@@ -159,7 +160,7 @@ export const syncData = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        console.error('[SyncController] Error durante la sincronización masiva:', error);
+        logger.error({ err: error }, '[SyncController] Error durante la sincronización masiva:');
         res.status(500).json({
             success: false,
             message: error.message || 'Error interno del servidor durante la sincronización',

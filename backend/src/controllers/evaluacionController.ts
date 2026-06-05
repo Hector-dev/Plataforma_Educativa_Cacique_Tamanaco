@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query } from '../db';
 
@@ -23,7 +24,7 @@ export const listarEvaluacionesPorClase = async (req: Request, res: Response): P
         );
         res.json({ success: true, data: result.rows });
     } catch (error: any) {
-        console.error('[EvaluacionController] Error al listar evaluaciones:', error);
+        logger.error({ err: error }, '[EvaluacionController] Error al listar evaluaciones:');
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 };
@@ -50,7 +51,7 @@ export const listarEvaluacionesPorCurso = async (req: Request, res: Response): P
         );
         res.json({ success: true, data: result.rows });
     } catch (error: any) {
-        console.error('[EvaluacionController] Error al listar evaluaciones por curso:', error);
+        logger.error({ err: error }, '[EvaluacionController] Error al listar evaluaciones por curso:');
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 };
@@ -72,7 +73,7 @@ export const obtenerEvaluacion = async (req: Request, res: Response): Promise<vo
         }
         res.json({ success: true, data: result.rows[0] });
     } catch (error: any) {
-        console.error('[EvaluacionController] Error al obtener evaluación:', error);
+        logger.error({ err: error }, '[EvaluacionController] Error al obtener evaluación:');
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 };
@@ -99,7 +100,7 @@ export const crearEvaluacion = async (req: Request, res: Response): Promise<void
 
         res.status(201).json({ success: true, data: result.rows[0] });
     } catch (error: any) {
-        console.error('[EvaluacionController] Error al crear evaluación:', error);
+        logger.error({ err: error }, '[EvaluacionController] Error al crear evaluación:');
         if (error.code === '23503') {
             res.status(400).json({ success: false, message: 'La clase especificada no existe' });
             return;
@@ -145,7 +146,7 @@ export const actualizarEvaluacion = async (req: Request, res: Response): Promise
 
         res.json({ success: true, data: result.rows[0] });
     } catch (error: any) {
-        console.error('[EvaluacionController] Error al actualizar evaluación:', error);
+        logger.error({ err: error }, '[EvaluacionController] Error al actualizar evaluación:');
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 };
@@ -164,7 +165,7 @@ export const eliminarEvaluacion = async (req: Request, res: Response): Promise<v
         }
         res.json({ success: true, message: 'Evaluación eliminada exitosamente' });
     } catch (error: any) {
-        console.error('[EvaluacionController] Error al eliminar evaluación:', error);
+        logger.error({ err: error }, '[EvaluacionController] Error al eliminar evaluación:');
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 };

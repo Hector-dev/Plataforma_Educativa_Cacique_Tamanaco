@@ -1,5 +1,6 @@
+import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
-import pool from '../db';
+import { query } from '../db';
 
 // ============================================================
 // Obtener resumen semanal de asistencias
@@ -7,7 +8,7 @@ import pool from '../db';
 // ============================================================
 export const obtenerResumenSemanal = async (_req: Request, res: Response): Promise<void> => {
     try {
-        const result = await pool.query(`
+        const result = await query(`
             SELECT
                 COALESCE(EXTRACT(DOW FROM fecha_registro), 0)::int AS dia_semana,
                 COUNT(*) AS total
@@ -33,7 +34,7 @@ export const obtenerResumenSemanal = async (_req: Request, res: Response): Promi
 
         res.json({ success: true, data: semana });
     } catch (error) {
-        console.error('[asistenciaController] Error al obtener resumen semanal:', error);
+        logger.error({ err: error }, '[asistenciaController] Error al obtener resumen semanal:');
         res.status(500).json({ success: false, message: 'Error al obtener resumen de asistencias' });
     }
 };
@@ -45,7 +46,7 @@ export const obtenerResumenSemanal = async (_req: Request, res: Response): Promi
 export const obtenerMiAsistencia = async (req: Request, res: Response): Promise<void> => {
     try {
         const idEstudiante = req.user!.id_usuario;
-        const result = await pool.query(`
+        const result = await query(`
             SELECT
                 COALESCE(EXTRACT(DOW FROM fecha_registro), 0)::int AS dia_semana,
                 COUNT(*) AS total,
@@ -82,7 +83,7 @@ export const obtenerMiAsistencia = async (req: Request, res: Response): Promise<
             }
         });
     } catch (error) {
-        console.error('[asistenciaController] Error al obtener mi asistencia:', error);
+        logger.error({ err: error }, '[asistenciaController] Error al obtener mi asistencia:');
         res.status(500).json({ success: false, message: 'Error al obtener asistencia personal' });
     }
 };

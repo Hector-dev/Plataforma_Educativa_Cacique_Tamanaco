@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query } from '../db';
 import { encryptAES } from '../utils/crypto';
@@ -51,7 +52,7 @@ export const crearDocumento = async (
             return;
         }
 
-        console.error(
+        logger.error(
             '[DocumentoController] Error al registrar documento:',
             error
         );

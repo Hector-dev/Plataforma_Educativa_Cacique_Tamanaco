@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import { logger } from './utils/logger';
 
 import usuarioRoutes from './routes/usuarioRoutes';
 import cursoRoutes from './routes/cursoRoutes';
@@ -121,7 +122,7 @@ interface ErrorResponse {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: any, _req: Request, res: Response, _next: any) => {
-    console.error('[Error Global]', err);
+    logger.error({ err, requestId: (_req as any).requestId }, '[Error Global]');
 
     // Error de multer (subida de archivos)
     if (err.code === 'LIMIT_FILE_SIZE') {
@@ -161,9 +162,7 @@ app.use((err: any, _req: Request, res: Response, _next: any) => {
 // ============================================================
 
 app.listen(PORT, () => {
-    console.log(`[Server] Servidor iniciado en el puerto ${PORT}`);
-    console.log(`[Server] Modo: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`[Server] Health check: http://localhost:${PORT}/api/health`);
+    logger.info({ port: PORT, env: process.env.NODE_ENV || 'development' }, 'Servidor iniciado');
 });
 
 export default app;

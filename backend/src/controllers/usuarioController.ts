@@ -1,6 +1,8 @@
+import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { query } from '../db';
+import { crearUsuarioSchema, actualizarUsuarioSchema, listarUsuariosQuerySchema } from '../utils/validators';
 
 // ============================================================
 // CRUD de Usuarios
@@ -9,6 +11,16 @@ import { query } from '../db';
 // POST /api/usuarios - Crear usuario
 export const crearUsuario = async (req: Request, res: Response): Promise<void> => {
     try {
+        // Validar con Zod
+        const parsed = crearUsuarioSchema.safeParse(req.body);
+        if (!parsed.success) {
+            res.status(400).json({
+                success: false,
+                message: 'Datos inválidos',
+                errors: parsed.error.flatten(),
+            });
+            return;
+        }
         const {
             nombre_completo,
             cedula,
@@ -21,16 +33,7 @@ export const crearUsuario = async (req: Request, res: Response): Promise<void> =
             edad,
             direccion,
             genero,
-        } = req.body;
-
-        // Validar campos obligatorios
-        if (!nombre_completo || !cedula || !email || !password || !rol) {
-            res.status(400).json({
-                success: false,
-                message: 'Los campos nombre_completo, cedula, email, password y rol son obligatorios',
-            });
-            return;
-        }
+        } = parsed.data;
 
         // Hashear la contraseña con bcrypt
         const saltRounds = 10;
@@ -77,7 +80,7 @@ export const crearUsuario = async (req: Request, res: Response): Promise<void> =
             return;
         }
 
-        console.error('[UsuarioController] Error al crear usuario:', error);
+        logger.error({ err: error }, '[UsuarioController] Error al crear usuario:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al crear el usuario',
@@ -85,24 +88,60 @@ export const crearUsuario = async (req: Request, res: Response): Promise<void> =
     }
 };
 
-// GET /api/usuarios - Listar todos los usuarios
-export const listarUsuarios = async (_req: Request, res: Response): Promise<void> => {
+// GET /api/usuarios - Listar todos los usuarios (con paginación)
+// Query params: ?page=1&limit=50&rol=estudiante&search=texto
+export const listarUsuarios = async (req: Request, res: Response): Promise<void> => {
     try {
+        const queryParams = listarUsuariosQuerySchema.parse(req.query);
+        const { page, limit, rol, search } = queryParams;
+        const offset = (page - 1) * limit;
+
+        // Construir WHERE dinámico
+        const conditions: string[] = [];
+        const params: any[] = [];
+        let paramIdx = 1;
+
+        if (rol) {
+            conditions.push(`LOWER(rol) = LOWER($${paramIdx++})`);
+            params.push(rol);
+        }
+        if (search) {
+            conditions.push(`(nombre_completo ILIKE $${paramIdx} OR email ILIKE $${paramIdx} OR cedula ILIKE $${paramIdx})`);
+            params.push(`%${search}%`);
+            paramIdx++;
+        }
+
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+        // Contar total
+        const countResult = await query(
+            `SELECT COUNT(*)::int AS total FROM usuarios ${whereClause}`,
+            params
+        );
+        const total = countResult.rows[0]?.total || 0;
+
+        // Obtener página
         const result = await query(
             `SELECT id_usuario, nombre_completo, cedula, email, rol,
                     tipo_discapacidad, foto_url, descripcion, edad, direccion, genero,
                     fecha_creacion
              FROM usuarios
-             ORDER BY fecha_creacion DESC`
+             ${whereClause}
+             ORDER BY fecha_creacion DESC
+             LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
+            [...params, limit, offset]
         );
 
         res.json({
             success: true,
             data: result.rows,
-            total: result.rowCount,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
         });
     } catch (error) {
-        console.error('[UsuarioController] Error al listar usuarios:', error);
+        logger.error({ err: error }, '[UsuarioController] Error al listar usuarios:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al listar usuarios',
@@ -146,7 +185,7 @@ export const obtenerUsuario = async (req: Request, res: Response): Promise<void>
             data: result.rows[0],
         });
     } catch (error) {
-        console.error('[UsuarioController] Error al obtener usuario:', error);
+        logger.error({ err: error }, '[UsuarioController] Error al obtener usuario:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al obtener el usuario',
@@ -275,7 +314,7 @@ export const actualizarUsuario = async (req: Request, res: Response): Promise<vo
             return;
         }
 
-        console.error('[UsuarioController] Error al actualizar usuario:', error);
+        logger.error({ err: error }, '[UsuarioController] Error al actualizar usuario:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al actualizar el usuario',
@@ -317,7 +356,7 @@ export const eliminarUsuario = async (req: Request, res: Response): Promise<void
             data: result.rows[0],
         });
     } catch (error) {
-        console.error('[UsuarioController] Error al eliminar usuario:', error);
+        logger.error({ err: error }, '[UsuarioController] Error al eliminar usuario:');
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al eliminar el usuario',

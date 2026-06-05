@@ -56,7 +56,30 @@ CREATE TABLE IF NOT EXISTS documentos_personales (
         REFERENCES usuarios (id_usuario) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
--- curso_estudiantes
+-- ─────────────────────────────────────────────────────────
+-- RELACIÓN ESTUDIANTE-CURSO: Existen dos tablas con fines complementarios:
+--
+-- 1. `curso_estudiantes` — Tabla de relación directa (link table).
+--    Propósito: Mapeo simple y rápido de qué estudiantes pertenecen
+--    a qué cursos. Útil para joins ligeros y validaciones FK.
+--    Sin campos extra de negocio.
+--
+-- 2. `matriculas` — Tabla de negocio con ciclo de vida completo.
+--    Propósito: Registrar el proceso de matrícula con estado
+--    (activa, inactiva, cancelada), fecha de inscripción y otros
+--    metadatos administrativos.
+--
+-- Coexisten porque:
+--   - `curso_estudiantes` → FK para integridad referencial en
+--     entregas, asistencias, calificaciones (sin overhead de estado).
+--   - `matriculas` → Lógica de negocio: estados, fechas, auditoría.
+--
+-- Futura consolidación: Se evaluará migrar a una sola tabla
+-- `matriculas` que absorba la FK de `curso_estudiantes` y añada
+-- un índice único en (id_curso, id_estudiante) con estado 'activa'.
+-- ─────────────────────────────────────────────────────────
+
+-- curso_estudiantes (link table — integridad referencial)
 CREATE TABLE IF NOT EXISTS curso_estudiantes (
     id_curso        INTEGER                     NOT NULL,
     id_estudiante   INTEGER                     NOT NULL,

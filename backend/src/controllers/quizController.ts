@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query, default as pool } from '../db';
 
@@ -77,7 +78,7 @@ export const obtenerQuizPorEvaluacion = async (req: Request, res: Response): Pro
             },
         });
     } catch (error) {
-        console.error('[QuizController] Error al obtener quiz:', error);
+        logger.error({ err: error }, '[QuizController] Error al obtener quiz:');
         res.status(500).json({ success: false, message: 'Error interno' });
     }
 };
@@ -150,7 +151,7 @@ export const guardarQuiz = async (req: Request, res: Response): Promise<void> =>
         res.json({ success: true, message: 'Quiz guardado exitosamente', data: { id_quiz } });
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('[QuizController] Error al guardar quiz:', error);
+        logger.error({ err: error }, '[QuizController] Error al guardar quiz:');
         res.status(500).json({ success: false, message: 'Error interno' });
     } finally {
         client.release();
@@ -220,7 +221,7 @@ export const tomarQuiz = async (req: Request, res: Response): Promise<void> => {
             },
         });
     } catch (error) {
-        console.error('[QuizController] Error al tomar quiz:', error);
+        logger.error({ err: error }, '[QuizController] Error al tomar quiz:');
         res.status(500).json({ success: false, message: 'Error interno' });
     }
 };
@@ -284,7 +285,7 @@ export const responderPregunta = async (req: Request, res: Response): Promise<vo
 
         res.json({ success: true, data: { es_correcta } });
     } catch (error) {
-        console.error('[QuizController] Error al responder:', error);
+        logger.error({ err: error }, '[QuizController] Error al responder:');
         res.status(500).json({ success: false, message: 'Error interno' });
     }
 };
@@ -333,7 +334,7 @@ export const finalizarQuiz = async (req: Request, res: Response): Promise<void> 
             data: { nota, acertadas, total_preguntas: total },
         });
     } catch (error) {
-        console.error('[QuizController] Error al finalizar:', error);
+        logger.error({ err: error }, '[QuizController] Error al finalizar:');
         res.status(500).json({ success: false, message: 'Error interno' });
     }
 };
@@ -363,7 +364,7 @@ export const obtenerResultadosQuiz = async (req: Request, res: Response): Promis
             data: result.rows,
         });
     } catch (error) {
-        console.error('[QuizController] Error al obtener resultados:', error);
+        logger.error({ err: error }, '[QuizController] Error al obtener resultados:');
         res.status(500).json({ success: false, message: 'Error interno' });
     }
 };

@@ -1,0 +1,34 @@
+-- ============================================================
+-- MIGRATIONS — Estrategia propuesta (node-pg-migrate)
+-- Plataforma Educativa Móvil Cacique Tamanaco
+-- ============================================================
+--
+-- PROBLEMA: init-scripts/*.sql solo corren en BD virgen (initdb).
+-- No hay forma de aplicar cambios incrementales en producción.
+--
+-- SOLUCIÓN: node-pg-migrate
+--   npm install -D node-pg-migrate
+--   npx node-pg-migrate create <nombre>
+--   npx node-pg-migrate up
+--   npx node-pg-migrate down
+--
+-- ESTRUCTURA PROPUESTA:
+--   migrations/
+--   ├── 001_do_usuarios.sql
+--   ├── 001_undo_usuarios.sql
+--   ├── 002_do_cursos-y-clases.sql
+--   ├── 002_undo_cursos-y-clases.sql
+--   └── ...
+--
+-- VENTAJAS:
+--   - Migraciones versionadas y atómicas (up/down)
+--   - Se aplican en orden sobre cualquier BD existente
+--   - Tabla `pgmigrations` lleva tracking automático
+--   - Compatible con CI/CD (se ejecutan en deploy)
+--
+-- IMPLEMENTACIÓN:
+--   1. Exportar DDL de 01_ddl.sql en archivos up/down individuales
+--   2. Crear script npm: "migrate": "node-pg-migrate up"
+--   3. Ejecutar migraciones al inicio del servidor o en entrypoint
+--   4. DEPRECAR init-scripts/ para nuevos despliegues
+-- ============================================================
