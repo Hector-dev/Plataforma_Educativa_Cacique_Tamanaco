@@ -27,6 +27,7 @@ export class App implements OnInit {
   token = '';
   sidebarCollapsed = false;
   mobileMenuOpen = false;
+  isLoginRoute = true;
 
   menuItems = [
     { path: '/dashboard', icon: '📊', label: 'Dashboard' },
@@ -59,17 +60,29 @@ export class App implements OnInit {
 
   ngOnInit() {
     this.loadTheme();
+    this.syncAuthState();
+    this.isLoginRoute = this.isLoginPath(window.location.pathname);
     this.isStandaloneRoute = this.isStandalonePath(window.location.pathname);
-    this.router.events.pipe(
-      filter(e => e instanceof NavigationEnd)
-    ).subscribe((e: any) => {
+    this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe((e: any) => {
       this.isStandaloneRoute = this.isStandalonePath(e.urlAfterRedirects);
+      this.isLoginRoute = this.isLoginPath(e.urlAfterRedirects);
+      this.syncAuthState();
     });
-    const saved = this.authService.restoreSession();
-    if (saved.isAuthenticated) {
-      this.token = saved.token!;
-      this.user = saved.user;
+  }
+
+  private syncAuthState() {
+    if (!this.token) {
+      const saved = this.authService.restoreSession();
+      if (saved.isAuthenticated) {
+        this.token = saved.token!;
+        this.user = saved.user;
+      }
     }
+  }
+
+  private isLoginPath(path: string): boolean {
+    const clean = path.split('?')[0];
+    return clean === '/' || clean === '';
   }
 
   private isStandalonePath(path: string): boolean {
@@ -77,36 +90,24 @@ export class App implements OnInit {
   }
 
   @HostListener('document:keydown', ['$event'])
-  handleKeyboard(event: KeyboardEvent) {
-    if (event.key === 'Escape') this.mobileMenuOpen = false;
-  }
+  handleKeyboard(event: KeyboardEvent) { if (event.key === 'Escape') this.mobileMenuOpen = false; }
 
   toggleTheme() {
     this.isDark = !this.isDark;
-    document.documentElement.classList.toggle('light-theme', !this.isDark);
-    document.documentElement.classList.toggle('dark-theme', this.isDark);
+    document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
     localStorage.setItem('cacique_theme', this.isDark ? 'dark' : 'light');
   }
 
   private loadTheme() {
     const saved = localStorage.getItem('cacique_theme');
-    if (saved === 'light') {
-      this.isDark = false;
-      document.documentElement.classList.add('light-theme');
-    } else {
-      document.documentElement.classList.add('dark-theme');
-    }
-  }
-
-  navigate(path: string) {
-    this.router.navigate([path]);
-    this.mobileMenuOpen = false;
+    const isDark = saved !== 'light';
+    this.isDark = isDark;
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   }
 
   logout() {
     this.authService.logout();
-    this.user = null;
-    this.token = '';
+    this.user = null; this.token = '';
     this.mobileMenuOpen = false;
     this.router.navigate(['/']);
   }
@@ -118,7 +119,5 @@ export class App implements OnInit {
     setTimeout(() => this.removeToast(id), 4000);
   }
 
-  removeToast(id: number) {
-    this.toasts = this.toasts.filter(t => t.id !== id);
-  }
+  removeToast(id: number) { this.toasts = this.toasts.filter(t => t.id !== id); }
 }

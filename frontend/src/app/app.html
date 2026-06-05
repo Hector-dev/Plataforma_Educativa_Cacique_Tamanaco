@@ -1,7 +1,7 @@
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- TOASTS                                               -->
 <!-- ═══════════════════════════════════════════════════════ -->
-@if (token && user) {
+@if (token) {
 <div class="toast-container" aria-live="polite">
   @for (toast of toasts; track toast.id) {
   <div class="toast" [class]="'toast toast-' + toast.type" role="alert">
@@ -20,17 +20,9 @@
 }
 
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- LOGIN / PUBLIC — sin sidebar                          -->
-<!-- ═══════════════════════════════════════════════════════ -->
-@if (!token && !isStandaloneRoute) {
-  <router-outlet />
-}
-
-<!-- ═══════════════════════════════════════════════════════ -->
 <!-- AUTHENTICATED LAYOUT — sidebar + content              -->
 <!-- ═══════════════════════════════════════════════════════ -->
-@if (token && user && !isStandaloneRoute) {
-  <!-- Mobile Top Bar -->
+@if (!isLoginRoute && !isStandaloneRoute) {
   <header class="mobile-topbar">
     <button class="hamburger" (click)="mobileMenuOpen = !mobileMenuOpen" aria-label="Menú">☰</button>
     <span class="mobile-brand">📘 Cacique Tamanaco</span>
@@ -40,17 +32,14 @@
     </button>
   </header>
 
-  <!-- Desktop theme toggle -->
   <button class="theme-toggle theme-toggle-desktop" (click)="toggleTheme()"
           [attr.aria-label]="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
     {{ isDark ? '☀️' : '🌙' }}
   </button>
 
   <div class="app-container">
-    <!-- Sidebar overlay (mobile) -->
     <div class="sidebar-overlay" [class.visible]="mobileMenuOpen" (click)="mobileMenuOpen = false" aria-hidden="true"></div>
 
-    <!-- Sidebar -->
     <aside class="sidebar" [class.collapsed]="sidebarCollapsed && !mobileMenuOpen"
            [class.mobile-open]="mobileMenuOpen" role="navigation" aria-label="Navegación principal">
       <div class="sidebar-header" (click)="sidebarCollapsed = !sidebarCollapsed"
@@ -78,9 +67,15 @@
       </div>
     </aside>
 
-    <!-- Main content -->
     <main class="main-content" role="main">
       <router-outlet />
     </main>
   </div>
+}
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- LOGIN — standalone, sin layout                        -->
+<!-- ═══════════════════════════════════════════════════════ -->
+@if (isLoginRoute && !isStandaloneRoute) {
+  <router-outlet />
 }

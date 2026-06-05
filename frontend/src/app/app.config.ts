@@ -9,6 +9,7 @@ import { DashboardComponent } from './features/dashboard/dashboard.component';
 import { UserManagementComponent } from './features/user-management/user-management.component';
 import { AttendanceComponent } from './features/attendance/attendance.component';
 import { ReportsComponent } from './features/reports/reports.component';
+import { CoursesComponent } from './features/courses/courses.component';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -25,6 +26,7 @@ export const appConfig: ApplicationConfig = {
       { path: 'usuarios', component: UserManagementComponent, canActivate: [authGuard, roleGuard('admin', 'administrador')] },
       { path: 'asistencia', component: AttendanceComponent, canActivate: [authGuard, roleGuard('admin', 'docente', 'administrador')] },
       { path: 'reportes', component: ReportsComponent, canActivate: [authGuard] },
+      { path: 'cursos', component: CoursesComponent, canActivate: [authGuard] },
 
       // ─── Lazy-loaded features ───────────────────────
       {
