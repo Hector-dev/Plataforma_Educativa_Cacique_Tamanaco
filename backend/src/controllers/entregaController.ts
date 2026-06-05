@@ -20,6 +20,20 @@ export const crearEntrega = async (req: Request, res: Response): Promise<void> =
             return;
         }
 
+        // ─── ID Spoofing protection ────────────────────────────
+        // Estudiantes solo pueden entregar con su propio ID.
+        // Admins/docentes pueden entregar en nombre de cualquier estudiante.
+        const userRole = (req.user?.rol || '').toLowerCase();
+        const isAdminOrDocente = userRole === 'admin' || userRole === 'administrador' || userRole === 'docente';
+
+        if (!isAdminOrDocente && Number(id_estudiante) !== req.user?.id_usuario) {
+            res.status(403).json({
+                success: false,
+                message: 'No puede registrar una entrega para otro estudiante',
+            });
+            return;
+        }
+
         const tipo = (tipo_entrega as string).toUpperCase();
 
         if (!['PDF', 'WORD', 'URL'].includes(tipo)) {

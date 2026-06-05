@@ -1,5 +1,7 @@
+import { inject } from '@angular/core';
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
+import { AuthService } from '../services/auth.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   // Never attach token to login requests
@@ -7,7 +9,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
-  const token = localStorage.getItem('cactam_token');
+  const authService = inject(AuthService);
+  const token = authService.getToken();
 
   if (token) {
     const cloned = req.clone({
@@ -17,11 +20,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     });
     return next(cloned).pipe(
       catchError((error: HttpErrorResponse) => {
-        // Auto-logout on 401 (expired/invalid token)
         if (error.status === 401) {
-          localStorage.removeItem('cactam_token');
-          localStorage.removeItem('cactam_user');
-          // Reload to show login screen
+          authService.logout();
           window.location.reload();
         }
         return throwError(() => error);
@@ -29,12 +29,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     );
   }
 
-  // For protected routes without token, let the backend respond with 401
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
-        localStorage.removeItem('cactam_token');
-        localStorage.removeItem('cactam_user');
+        authService.logout();
         window.location.reload();
       }
       return throwError(() => error);
