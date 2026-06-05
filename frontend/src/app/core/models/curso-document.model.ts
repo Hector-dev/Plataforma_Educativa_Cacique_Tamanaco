@@ -45,15 +45,18 @@ export interface QuizItem extends CursoItemBase {
 export type CursoItem = TareaItem | MaterialItem | EvaluacionItem | QuizItem;
 
 // --- Lección (clase dentro del curso) ---
+// NOTA: Las propiedades usan camelCase (convención TypeScript).
+// Al serializar a/desde BD (snake_case: duracion_minutos, tipo_discapacidad, etc.)
+// el store y backend hacen el mapeo automáticamente.
 
 export interface Leccion {
   id: string;                // 'lec_xxx'
   titulo: string;
   descripcion: string;
-  tipoDiscapacidad: string | null;
-  fecha: string | null;      // ISO 8601
-  enlaceRecurso: string | null;
-  duracionMinutos: number | null;
+  tipoDiscapacidad: string | null;     // BD: tipo_discapacidad
+  fecha: string | null;                // ISO 8601
+  enlaceRecurso: string | null;        // BD: enlace_recurso
+  duracionMinutos: number | null;      // BD: duracion_minutos
   orden: number;
   items: CursoItem[];        // Evaluaciones + Materiales anidados
 }
