@@ -1,0 +1,13 @@
+{
+  "name": "cacique-e2e-tests",
+  "version": "1.0.0",
+  "description": "Pruebas E2E para Plataforma Cacique Tamanaco",
+  "private": true,
+  "scripts": {
+    "test": "node test-e2e.js",
+    "test:canvas": "node test-e2e-canvas-editor.js"
+  },
+  "dependencies": {
+    "playwright": "^1.48.0"
+  }
+}

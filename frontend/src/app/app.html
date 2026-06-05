@@ -1,0 +1,1076 @@
+<!-- ✅ Toasts (siempre visibles cuando hay sesión) -->
+@if (token && user) {
+<div class="toast-container" aria-live="polite">
+    @for (toast of toasts; track toast.id) {
+    <div class="toast" [class]="'toast toast-' + toast.type" role="alert">
+        <span class="toast-icon">{{ toast.icon }}</span>
+        <span class="toast-msg">{{ toast.message }}</span>
+    </div>
+    }
+</div>
+}
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- CRUD MODAL DIALOG (solo dentro de sesión)                 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+@if (token && user && modal.show) {
+<div class="modal-backdrop" (click)="closeModal()" (keydown.escape)="closeModal()" tabindex="-1">
+    <div class="modal-dialog animate-scale-in" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"
+        [attr.aria-label]="modal.title">
+        <div class="modal-header">
+            <h2 class="modal-title">{{ modal.title }}</h2>
+            <button class="modal-close" (click)="closeModal()" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="modal-body">
+            @if (modalError) {
+            <div class="alert alert-error" role="alert">{{ modalError }}</div>
+            }
+            @if (modal.description) {
+            <p class="modal-description">{{ modal.description }}</p>
+            }
+            <form (ngSubmit)="submitModal()" #modalFormRef="ngForm" novalidate>
+                @for (field of modal.fields; track field.name) {
+                @if (field.label) {
+                <div class="form-group">
+                    <label [for]="'modal-' + field.name">
+                        {{ field.label }}
+                        @if (field.required) { <span class="required-mark">*</span> }
+                    </label>
+                    @if (field.type === 'select') {
+                    <select [id]="'modal-' + field.name" [name]="field.name" [(ngModel)]="modalForm[field.name]"
+                        [required]="field.required" class="form-input">
+                        <option value="" disabled>Seleccionar...</option>
+                        @for (opt of field.options; track opt.value) {
+                        <option [value]="opt.value">{{ opt.label }}</option>
+                        }
+                    </select>
+                    } @else if (field.type === 'file') {
+                    <input [id]="'modal-' + field.name" [name]="field.name" type="file"
+                        [attr.accept]="field.accept || null"
+                        (change)="onFileSelected($event)"
+                        class="form-input file-input" />
+                    } @else {
+                    <input [id]="'modal-' + field.name" [name]="field.name" [type]="field.type"
+                        [(ngModel)]="modalForm[field.name]" [required]="field.required"
+                        [placeholder]="field.placeholder || ''" class="form-input">
+                    }
+                </div>
+                }
+                }
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" (click)="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn-primary" [disabled]="modalLoading">
+                        @if (modalLoading) { <span class="spinner" aria-hidden="true"></span> Guardando... }
+                        @else { {{ modal.submitLabel || (modal.mode === 'create' ? 'Crear' : 'Guardar') }} }
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+}
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- LOGIN SCREEN — standalone, sin sidebar, fullscreen        -->
+<!-- ══════════════════════════════════════════════════════════ -->
+@if (!token || !user) {
+<div class="login-view">
+    <div class="login-card">
+        <div class="login-brand">
+            <span class="login-logo">📘</span>
+            <h1>Cacique Tamanaco</h1>
+            <p class="subtitle">Plataforma Educativa</p>
+        </div>
+        <form (ngSubmit)="onLogin()" #loginForm="ngForm" novalidate>
+            <div class="form-group">
+                <label for="login-email">Email</label>
+                <input id="login-email" type="email" name="email" autocomplete="email" [(ngModel)]="loginEmail" required
+                    placeholder="admin@admin.com" class="form-input" [disabled]="loading" aria-required="true">
+            </div>
+            <div class="form-group">
+                <label for="login-password">Contraseña</label>
+                <input id="login-password" type="password" name="password" autocomplete="current-password"
+                    [(ngModel)]="loginPassword" required placeholder="••••••••" class="form-input" [disabled]="loading"
+                    aria-required="true">
+            </div>
+            @if (loginError) { <p class="error-msg" role="alert">{{ loginError }}</p> }
+            <button type="submit" class="btn-primary" [disabled]="loading || !loginEmail || !loginPassword">
+                @if (loading) { <span class="spinner" aria-hidden="true"></span> Ingresando... }
+                @else { Iniciar Sesión }
+            </button>
+        </form>
+        <p class="login-footer">
+            Sistema de gestión educativa · v1.0
+        </p>
+    </div>
+</div>
+}
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- MAIN APP — solo visible después del login                  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+@if (token && user) {
+
+<!-- ═══ VISTA NORMAL: Sidebar + Dashboard ═══ -->
+@if (!isStandaloneRoute) {
+<!-- Mobile top bar: hamburger + brand + theme toggle (solo ≤768px) -->
+<div class="mobile-top-bar">
+    <button class="mobile-menu-btn" (click)="mobileMenuOpen = !mobileMenuOpen"
+        [attr.aria-label]="mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'">
+        {{ mobileMenuOpen ? '✕' : '☰' }}
+    </button>
+    <span class="mobile-brand">📘 Cacique Tamanaco</span>
+    <button class="theme-toggle theme-toggle-mobile" (click)="toggleTheme()"
+        [attr.aria-label]="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
+        {{ isDark ? '☀️' : '🌙' }}
+    </button>
+</div>
+
+<!-- Desktop: theme toggle flotante (oculto en móvil) -->
+<button class="theme-toggle theme-toggle-desktop" (click)="toggleTheme()"
+    [attr.aria-label]="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
+    {{ isDark ? '☀️' : '🌙' }}
+</button>
+
+<div class="app-container">
+    <div class="sidebar-overlay" [class.visible]="mobileMenuOpen" (click)="mobileMenuOpen = false" aria-hidden="true">
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" [class.collapsed]="sidebarCollapsed && !mobileMenuOpen" [class.mobile-open]="mobileMenuOpen"
+        role="navigation" aria-label="Navegación principal">
+        <div class="sidebar-header" (click)="sidebarCollapsed = !sidebarCollapsed"
+            (keydown.enter)="sidebarCollapsed = !sidebarCollapsed" tabindex="0" role="button"
+            [attr.aria-label]="sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'">
+            <span class="logo" aria-hidden="true">📘</span>
+            <h2>Cacique Tamanaco</h2>
+        </div>
+        <nav class="sidebar-nav">
+            @for (item of menuItems; track item.id) {
+            @if ((item.id !== 'usuarios' || isAdmin) && (item.id !== 'asistencia' || !isEstudiante) && (item.id !== 'reportes' || !isEstudiante)) {
+            <a [class.active]="currentView === item.id" (click)="setView(item.id); mobileMenuOpen = false"
+                (keydown.enter)="setView(item.id); mobileMenuOpen = false" class="nav-item" tabindex="0"
+                role="menuitem">
+                <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+                <span class="nav-label">{{ item.label }}</span>
+            </a>
+            }
+            }
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <span aria-hidden="true">👤</span>
+                <span>{{ user.nombre_completo }}</span>
+            </div>
+            <button class="logout-btn" (click)="logout()" aria-label="Cerrar sesión">🚪 <span>Salir</span></button>
+        </div>
+    </aside>
+
+    <main class="main-content" role="main">
+
+        <!-- ==================== Dashboard ==================== -->
+        @if (currentView === 'dashboard') {
+        <div class="view-container">
+            <div class="welcome-header">
+                <div class="welcome-text">
+                    <h1>📊 Bienvenido, {{ user.nombre_completo?.split(' ')[0] }}</h1>
+                    <p class="last-login">Panel de control · {{ user.rol }}</p>
+                </div>
+            </div>
+
+            @if (isEstudiante) {
+            <!-- ─── Dashboard Estudiante: Cursos Suscritos ─── -->
+            <section class="dashboard-section animate-fade-in-up">
+                <h2>📚 Mis Cursos Suscritos</h2>
+                @if (misCursosLoading) {
+                <div class="section-loading"><span class="spinner spinner-lg" aria-label="Cargando cursos"></span></div>
+                } @else if (misCursos.length === 0) {
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <h3>No estás inscrito en ningún curso</h3>
+                    <p>Consulta con un administrador para asignarte cursos.</p>
+                </div>
+                } @else {
+                <div class="cursos-grid">
+                    @for (curso of misCursos; track curso.id_curso) {
+                    <div class="curso-card animate-fade-in-up">
+                        <div class="curso-card-header">
+                            <span class="curso-card-icon">📖</span>
+                            <h3>{{ curso.nombre }}</h3>
+                        </div>
+                        <p class="curso-card-desc">{{ curso.descripcion || 'Sin descripción' }}</p>
+                        <div class="curso-card-meta">
+                            <span class="curso-badge">{{ curso.codigo }}</span>
+                        </div>
+                    </div>
+                    }
+                </div>
+                }
+            </section>
+
+            <!-- ─── Dashboard Estudiante: Asistencia Personal ─── -->
+            <section class="dashboard-section animate-fade-in-up">
+                <h2>📋 Mi Asistencia</h2>
+                @if (miAsistenciaLoading) {
+                <div class="section-loading"><span class="spinner spinner-lg" aria-label="Cargando asistencia"></span></div>
+                } @else if (!miAsistencia) {
+                <div class="empty-state">
+                    <div class="empty-icon">📊</div>
+                    <h3>Sin registros de asistencia</h3>
+                    <p>Aún no hay datos de asistencia disponibles.</p>
+                </div>
+                } @else {
+                <div class="asistencia-cards">
+                    <div class="asistencia-stat-card">
+                        <span class="asistencia-stat-icon">✅</span>
+                        <div class="asistencia-stat-data">
+                            <span class="asistencia-stat-value">{{ miAsistencia.totalAsistencias || 0 }}</span>
+                            <span class="asistencia-stat-label">Presente</span>
+                        </div>
+                    </div>
+                    <div class="asistencia-stat-card">
+                        <span class="asistencia-stat-icon">❌</span>
+                        <div class="asistencia-stat-data">
+                            <span class="asistencia-stat-value">{{ (miAsistencia.totalClases - miAsistencia.totalAsistencias) || 0 }}</span>
+                            <span class="asistencia-stat-label">Ausente</span>
+                        </div>
+                    </div>
+                    <div class="asistencia-stat-card">
+                        <span class="asistencia-stat-icon">📊</span>
+                        <div class="asistencia-stat-data">
+                            <span class="asistencia-stat-value">{{ miAsistencia.porcentaje || 0 }}%</span>
+                            <span class="asistencia-stat-label">Asistencia</span>
+                        </div>
+                    </div>
+                </div>
+                }
+            </section>
+            } @else {
+            <!-- ─── Dashboard Admin/Docente: KPIs globales ─── -->
+            @if (kpiLoading) {
+            <div class="kpis-grid stagger">
+                @for (i of [1,2,3,4]; track i) { <div class="skeleton skeleton-card animate-fade-in-up"
+                    aria-hidden="true"></div> }
+            </div>
+            } @else {
+            <section class="kpis-grid stagger">
+                @for (kpi of kpiCards; track kpi.label) {
+                <div class="kpi-card animate-fade-in-up">
+                    <div class="kpi-icon" aria-hidden="true">{{ kpi.icon }}</div>
+                    <div class="kpi-data"><span class="kpi-value">{{ kpi.value }}</span><span class="kpi-label">{{
+                            kpi.label }}</span></div>
+                </div>
+                }
+            </section>
+            }
+            <section class="chart-section animate-fade-in-up">
+                <h2>Asistencia Semanal</h2>
+                <div class="chart-wrapper"><canvas id="asistenciaChart" aria-label="Gráfico de asistencia semanal"
+                        role="img"></canvas></div>
+            </section>
+            }
+        </div>
+        }
+
+        <!-- ==================== Usuarios ==================== -->
+        @if (currentView === 'usuarios') {
+        <div class="view-container">
+            <div class="page-header">
+                <h1 class="page-title">👥 Usuarios</h1>
+                <button class="btn-primary" (click)="openCrearUsuario()">➕ Crear Usuario</button>
+            </div>
+            @if (usuariosLoading) {
+            <div class="table-container">@for (i of [1,2,3,4,5]; track i) { <div
+                    class="skeleton skeleton-row animate-fade-in-up" aria-hidden="true"></div> }</div>
+            } @else if (usuarios.length === 0) {
+            <div class="empty-state animate-fade-in">
+                <div class="empty-icon">📭</div>
+                <h3>No hay usuarios</h3>
+                <p>No se encontraron usuarios registrados.</p>
+                <button class="btn-primary" (click)="openCrearUsuario()" style="margin-top:1rem">➕ Crear primer
+                    usuario</button>
+            </div>
+            } @else {
+            <div class="table-container animate-fade-in-up">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Rol</th>
+                            <th>Género</th>
+                            <th class="th-actions">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (u of usuarios; track u.id_usuario) {
+                        <tr>
+                            <td class="mono">{{ u.id_usuario }}</td>
+                            <td>{{ u.nombre_completo }}</td>
+                            <td>{{ u.email }}</td>
+                            <td><span class="badge" [class.admin]="u.rol === 'Administrador'">{{ u.rol }}</span></td>
+                            <td>{{ u.genero || '—' }}</td>
+                            <td class="actions">
+                                <button class="btn-sm btn-edit" (click)="openEditarUsuario(u)" title="Editar"
+                                    aria-label="Editar a {{ u.nombre_completo }}">✏️</button>
+                                <button class="btn-sm btn-delete" (click)="eliminarUsuario(u)" title="Eliminar"
+                                    aria-label="Eliminar a {{ u.nombre_completo }}">🗑️</button>
+                            </td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            }
+        </div>
+        }
+
+        <!-- ==================== Cursos ==================== -->
+        @if (currentView === 'cursos') {
+        <div class="view-container">
+            <div class="page-header">
+                <h1 class="page-title">📖 Cursos</h1>
+                @if (isAdmin) { <button class="btn-primary" (click)="openCrearCurso()">➕ Crear Curso</button> }
+            </div>
+            @if (cursosLoading) {
+            <div class="cursos-stack">@for (i of [1,2,3]; track i) { <div
+                    class="skeleton skeleton-card animate-fade-in-up" style="height:80px" aria-hidden="true"></div> }
+            </div>
+            } @else if (cursosExpand.length === 0) {
+            <div class="empty-state animate-fade-in">
+                <div class="empty-icon">📖</div>
+                <h3>No hay cursos</h3>
+                <p>No se encontraron cursos registrados.</p>
+                @if (isAdmin) { <button class="btn-primary" (click)="openCrearCurso()" style="margin-top:1rem">➕ Crear
+                    primer curso</button> }
+            </div>
+            } @else {
+            <div class="cursos-stack">
+                @for (cursoItem of cursosExpand; track cursoItem.curso.id_curso) {
+                <div class="curso-card animate-fade-in-up">
+                    <div class="curso-header" (click)="toggleCurso(cursoItem)" (keydown.enter)="toggleCurso(cursoItem)"
+                        tabindex="0" role="button" [attr.aria-expanded]="cursoItem.expanded">
+                        <div class="curso-header-left">
+                            <span class="curso-chevron">{{ cursoItem.expanded ? '▼' : '▶' }}</span>
+                            <div class="curso-info">
+                                <h3 class="curso-name">{{ cursoItem.curso.nombre }}</h3>
+                                <p class="curso-meta">
+                                    {{ cursoItem.curso.descripcion || 'Sin descripción' }}
+                                    @if (cursoItem.clases.length > 0) { · {{ cursoItem.clases.length }} clase(s) }
+                                </p>
+                            </div>
+                        </div>
+                        @if (isAdmin || isDocente) {
+                        <div class="curso-header-actions" (click)="$event.stopPropagation()">
+                            <button class="btn-sm btn-add" (click)="openMatricularEstudiante(cursoItem.curso)"
+                                title="Matricular estudiante" aria-label="Matricular estudiante en el curso">👤</button>
+                            @if (isAdmin) {
+                            <button class="btn-sm btn-edit" (click)="$event.stopPropagation(); router.navigate(['/cursos', cursoItem.curso.id_curso, 'editor'])"
+                                title="Editar en Canvas" aria-label="Editar curso en editor visual">✏️</button>
+                            <button class="btn-sm btn-delete" (click)="eliminarCurso(cursoItem.curso)"
+                                title="Eliminar curso" aria-label="Eliminar curso">🗑️</button>
+                            }
+                        </div>
+                        }
+                    </div>
+                    @if (cursoItem.expanded) {
+                    <div class="curso-body">
+                        @if (isAdmin || isDocente) {
+                        <div class="estudiantes-section">
+                            <h4 class="section-title">🎓 Estudiantes matriculados</h4>
+                            @if (cursoItem.estudiantesLoading) {
+                            <div class="section-loading"><span class="spinner"></span><span
+                                    style="margin-left:0.5rem;color:var(--text-muted)">Cargando...</span></div>
+                            } @else if (cursoItem.estudiantes.length === 0) {
+                            <p class="empty-estudiantes">No hay estudiantes matriculados.</p>
+                            } @else {
+                            <div class="estudiantes-list">
+                                @for (est of cursoItem.estudiantes; track est.id_usuario) {
+                                <div class="estudiante-chip">
+                                    <span class="estudiante-nombre">{{ est.nombre_completo }}</span>
+                                    <button class="btn-sm btn-delete" (click)="retirarEstudiante(cursoItem, est)"
+                                        title="Retirar del curso" aria-label="Retirar a {{ est.nombre_completo }}">✕</button>
+                                </div>
+                                }
+                            </div>
+                            }
+                        </div>
+                        }
+                        @if (cursoItem.clasesLoading) {
+                        <div class="section-loading" style="padding:1rem"><span class="spinner"
+                                aria-label="Cargando clases"></span><span
+                                style="margin-left:0.75rem;color:var(--text-muted)">Cargando clases...</span></div>
+                        } @else if (cursoItem.clases.length === 0) {
+                        <div class="empty-state" style="padding:2rem 1rem">
+                            <div class="empty-icon">📚</div>
+                            <h3>Sin clases</h3>
+                            <p>Este curso aún no tiene clases.</p>
+                        </div>
+                        } @else {
+                        <div class="clases-list">
+                            @for (ce of getClasesConEvaluaciones(cursoItem.curso.id_curso); track ce.clase.id_clase) {
+                            <div class="clase-block">
+                                <div class="clase-header">
+                                    <div class="clase-info">
+                                        <span class="clase-icon">📝</span>
+                                        <div>
+                                            <strong>{{ ce.clase.titulo }}</strong>
+                                            @if (ce.clase.fecha) { <span class="clase-fecha">{{ ce.clase.fecha |
+                                                date:'mediumDate' }}</span> }
+                                        </div>
+                                    </div>
+                                    <div class="clase-actions">
+                                        <button class="btn-sm btn-view"
+                                            (click)="openClaseDetalle('lec_' + ce.clase.id_clase, cursoItem)"
+                                            title="Ver contenido de la clase"
+                                            aria-label="Ver contenido de {{ ce.clase.titulo }}">👁</button>
+                                        @if (isAdmin || isDocente) {
+                                        <button class="btn-sm btn-add"
+                                            (click)="openCrearEvaluacion(ce.clase.id_clase, cursoItem.curso.id_curso)"
+                                            title="Agregar actividad"
+                                            aria-label="Agregar actividad a {{ ce.clase.titulo }}">📋</button>
+                                        @if (isAdmin) {
+                                        <button class="btn-sm btn-edit"
+                                            (click)="openEditarClase(ce.clase, cursoItem.curso.id_curso)"
+                                            title="Editar clase"
+                                            aria-label="Editar clase {{ ce.clase.titulo }}">✏️</button>
+                                        <button class="btn-sm btn-delete"
+                                            (click)="eliminarClase(ce.clase, cursoItem.curso.id_curso)"
+                                            title="Eliminar clase"
+                                            aria-label="Eliminar clase {{ ce.clase.titulo }}">🗑️</button>
+                                        }
+                                        }
+                                    </div>
+                                </div>
+                                @if (ce.evaluaciones.length > 0) {
+                                <div class="evaluaciones-list">
+                                    @for (e of ce.evaluaciones; track e.id_evaluacion) {
+                                    <div class="evaluacion-item">
+                                        <div class="evaluacion-info">
+                                            <span class="evaluacion-icon">📄</span>
+                                            <span class="evaluacion-title">{{ e.titulo_evaluacion }}</span>
+                                            @if (e.quiz_nota !== undefined && e.quiz_nota !== null) {
+                                            <span class="badge" [class.nota-alta]="e.quiz_nota >= 60"
+                                                               [class.nota-baja]="e.quiz_nota < 60"
+                                                               style="margin-left:0.5rem">{{ e.quiz_nota }}%</span>
+                                            }
+                                            <span class="badge" style="margin-left:auto">{{ e.porcentaje }}%</span>
+                                        </div>
+                                        @if (isAdmin) {
+                                        <div class="evaluacion-actions">
+                                            @if (e.tiene_quiz) {
+                                            <button class="btn-sm btn-quiz"
+                                                (click)="openEditarQuiz(e, cursoItem.curso.id_curso)"
+                                                title="Gestionar preguntas del quiz"
+                                                aria-label="Gestionar preguntas de {{ e.titulo_evaluacion }}">⚙️</button>
+                                            <button class="btn-sm btn-view"
+                                                (click)="verNotasQuiz(e)"
+                                                title="Ver notas de estudiantes"
+                                                aria-label="Ver notas de {{ e.titulo_evaluacion }}">📊</button>
+                                            } @else {
+                                            <button class="btn-sm btn-add"
+                                                (click)="openEditarQuiz(e, cursoItem.curso.id_curso)"
+                                                title="Crear quiz para esta actividad"
+                                                aria-label="Crear quiz para {{ e.titulo_evaluacion }}">🧠</button>
+                                            }
+                                            <button class="btn-sm btn-edit"
+                                                (click)="openEditarEvaluacion(e, cursoItem.curso.id_curso)"
+                                                title="Editar actividad"
+                                                aria-label="Editar {{ e.titulo_evaluacion }}">✏️</button>
+                                            <button class="btn-sm btn-delete"
+                                                (click)="eliminarEvaluacion(e, cursoItem.curso.id_curso)"
+                                                title="Eliminar actividad"
+                                                aria-label="Eliminar {{ e.titulo_evaluacion }}">🗑️</button>
+                                        </div>
+                                        } @else if (isEstudiante && e.tiene_quiz) {
+                                        <div class="evaluacion-actions">
+                                            @if (e.quiz_nota !== undefined && e.quiz_nota !== null) {
+                                            <button class="btn-sm btn-play"
+                                                (click)="empezarQuiz(e)"
+                                                title="Ver quiz"
+                                                aria-label="Ver {{ e.titulo_evaluacion }}">🔄</button>
+                                            } @else {
+                                            <button class="btn-sm btn-play"
+                                                (click)="empezarQuiz(e)"
+                                                title="Empezar Quiz"
+                                                aria-label="Empezar {{ e.titulo_evaluacion }}">▶️</button>
+                                            }
+                                        </div>
+                                        }
+                                    </div>
+                                    }
+                                </div>
+                                } @else {
+                                <div class="evaluaciones-empty">Sin actividades entregables</div>
+                                }
+                            </div>
+                            }
+                        </div>
+                        }
+                        <!-- ═══ Tareas del Canvas (solo visible para estudiantes) ═══ -->
+                        @if (cursoItem.canvasTareas.length > 0) {
+                        <div class="canvas-tareas-section">
+                            <h4 class="tareas-section-title">📝 Tareas</h4>
+                            <div class="tareas-list">
+                                @for (tarea of cursoItem.canvasTareas; track tarea.id) {
+                                <div class="tarea-item">
+                                    <div class="tarea-info">
+                                        <span class="tarea-icon">📝</span>
+                                        <div class="tarea-content">
+                                            <span class="tarea-title">{{ tarea.titulo }}</span>
+                                            <span class="tarea-clase">🎬 {{ tarea.claseTitulo }}</span>
+                                            @if (tarea.fechaLimite) {
+                                            <span class="tarea-fecha">⏰ {{ tarea.fechaLimite | date:'mediumDate' }}</span>
+                                            }
+                                            @if (tarea.formatosPermitidos.length > 0) {
+                                            <span class="tarea-formatos">📎 {{ tarea.formatosPermitidos.join(', ') }}</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="tarea-actions">
+                                        @if (isAdmin || isDocente) {
+                                        <button class="btn-sm btn-edit"
+                                            (click)="openEditarTareaCanvas(tarea, cursoItem)"
+                                            title="Editar tarea"
+                                            aria-label="Editar {{ tarea.titulo }}">✏️</button>
+                                        <button class="btn-sm btn-delete"
+                                            (click)="eliminarTareaCanvas(tarea, cursoItem)"
+                                            title="Eliminar tarea"
+                                            aria-label="Eliminar {{ tarea.titulo }}">🗑️</button>
+                                        }
+                                        @if (isEstudiante) {
+                                        @if (entregaActiva?.id === tarea.id) {
+                                        <button class="btn-sm btn-cancel"
+                                            (click)="cancelarEntrega()"
+                                            title="Cancelar">✕</button>
+                                        } @else {
+                                        <button class="btn-sm btn-entregar"
+                                            (click)="openEntregarTareaCanvas(tarea, cursoItem.curso.id_curso)"
+                                            title="Entregar tarea"
+                                            aria-label="Entregar {{ tarea.titulo }}">📤 Entregar</button>
+                                        }
+                                        }
+                                    </div>
+                                    @if (entregaActiva?.id === tarea.id) {
+                                    <div class="entrega-zone animate-fade-in-up">
+                                        <div class="entrega-header">
+                                            <strong>📤 {{ entregaActiva!.titulo }}</strong>
+                                            <span>🎬 {{ entregaActiva!.claseTitulo }}</span>
+                                        </div>
+                                        <div class="entrega-tabs">
+                                            @if (entregaActiva!.formatosPermitidos.includes('URL')) {
+                                            <button class="tab"
+                                                [class.active]="entregaTipo === 'URL'"
+                                                (click)="entregaTipo='URL'; entregaArchivo=null">🔗 URL</button>
+                                            }
+                                            @if (entregaActiva!.formatosPermitidos.includes('PDF')) {
+                                            <button class="tab"
+                                                [class.active]="entregaTipo === 'PDF'"
+                                                (click)="entregaTipo='PDF'; entregaUrl=''">📄 PDF</button>
+                                            }
+                                            @if (entregaActiva!.formatosPermitidos.includes('WORD')) {
+                                            <button class="tab"
+                                                [class.active]="entregaTipo === 'WORD'"
+                                                (click)="entregaTipo='WORD'; entregaUrl=''">📝 Word</button>
+                                            }
+                                        </div>
+                                        @if (entregaTipo === 'URL') {
+                                        <div class="entrega-url">
+                                            <input class="form-input" type="url"
+                                                [(ngModel)]="entregaUrl"
+                                                placeholder="https://github.com/mi-tarea"
+                                                [disabled]="entregaLoading">
+                                        </div>
+                                        } @else {
+                                        <div class="entrega-file"
+                                            (dragover)="$event.preventDefault()"
+                                            (drop)="onEntregaArchivoSeleccionado($event)">
+                                            <label class="file-drop-label">
+                                                @if (entregaArchivo) {
+                                                <span class="file-selected">📎 {{ entregaArchivo.name }}</span>
+                                                } @else {
+                                                <span class="file-placeholder">📂 Arrastra o selecciona un archivo</span>
+                                                }
+                                                <input type="file" hidden
+                                                    [accept]="entregaTipo === 'PDF' ? '.pdf' : '.doc,.docx'"
+                                                    (change)="onEntregaArchivoSeleccionado($event)"
+                                                    [disabled]="entregaLoading">
+                                            </label>
+                                        </div>
+                                        }
+                                        @if (entregaError) {
+                                        <p class="error-msg">{{ entregaError }}</p>
+                                        }
+                                        <div class="entrega-actions">
+                                            <button class="btn-primary" (click)="enviarEntrega()"
+                                                [disabled]="entregaLoading">
+                                                @if (entregaLoading) { <span class="spinner"></span> Enviando... }
+                                                @else { 📤 Entregar }
+                                            </button>
+                                            <button class="btn-secondary" (click)="cancelarEntrega()"
+                                                [disabled]="entregaLoading">Cancelar</button>
+                                        </div>
+                                    </div>
+                                    }
+                                </div>
+                                }
+                            </div>
+                        </div>
+                        }
+                    </div>
+                    }
+                </div>
+                }
+            </div>
+            }
+        </div>
+        }
+
+        <!-- ==================== Asistencia ==================== -->
+        @if (currentView === 'asistencia') {
+        <div class="view-container">
+            <h1 class="page-title">✅ Asistencia</h1>
+            <div class="toolbar animate-fade-in">
+                <button class="btn-secondary" (click)="syncData()" [disabled]="pendingCount === 0">🔄
+                    Sincronizar</button>
+                <span class="badge-info">📋 Pendientes: {{ pendingCount }}</span>
+            </div>
+            @if (asistenciaLoading) {
+            <div class="table-container">@for (i of [1,2,3,4,5,6]; track i) { <div
+                    class="skeleton skeleton-row animate-fade-in-up" aria-hidden="true"></div> }</div>
+            } @else if (alumnos.length === 0) {
+            <div class="empty-state animate-fade-in">
+                <div class="empty-icon">🎓</div>
+                <h3>No hay estudiantes</h3>
+                <p>No se encontraron estudiantes registrados.</p>
+            </div>
+            } @else {
+            <div class="table-container animate-fade-in-up">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Estudiante</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (a of alumnos; track a.id_usuario) {
+                        <tr>
+                            <td>{{ a.nombre_completo }}</td>
+                            <td><span class="badge" [class.presente]="a.estado === 'presente'"
+                                    [class.ausente]="a.estado === 'ausente'"
+                                    [class.justificado]="a.estado === 'justificado'">{{ a.estado || '—' }}</span></td>
+                            <td class="actions">
+                                <button class="btn-sm btn-success" (click)="marcarAsistencia(a, 'presente')"
+                                    title="Marcar presente"
+                                    aria-label="Marcar presente a {{ a.nombre_completo }}">✔</button>
+                                <button class="btn-sm btn-danger" (click)="marcarAsistencia(a, 'ausente')"
+                                    title="Marcar ausente"
+                                    aria-label="Marcar ausente a {{ a.nombre_completo }}">✘</button>
+                                <button class="btn-sm btn-warning" (click)="marcarAsistencia(a, 'justificado')"
+                                    title="Marcar justificado"
+                                    aria-label="Marcar justificado a {{ a.nombre_completo }}">⚡</button>
+                            </td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            }
+        </div>
+        }
+
+        <!-- ==================== Reportes ==================== -->
+        @if (currentView === 'reportes') {
+        <div class="view-container">
+            <h1 class="page-title">📈 Reportes</h1>
+
+            <!-- Selector de tipo de reporte -->
+            <div class="toolbar animate-fade-in">
+                <select class="form-select" [(ngModel)]="reporteTipo" (change)="cargarReporte()" aria-label="Tipo de reporte">
+                    <option value="asistencia-general">Asistencia General</option>
+                    <option value="asistencia-por-curso">Asistencia por Curso</option>
+                    <option value="estudiantes-por-genero">Estudiantes por Género</option>
+                </select>
+                @if (reporteTipo === 'asistencia-por-curso') {
+                <select class="form-select" [(ngModel)]="reporteCursoId" (change)="cargarReporte()" aria-label="Seleccionar curso">
+                    <option value="" disabled>Selecciona un curso</option>
+                    @for (rc of reporteCursos; track rc.id_curso) {
+                    <option [value]="rc.id_curso">{{ rc.nombre }}</option>
+                    }
+                </select>
+                }
+            </div>
+
+            @if (reporteData && reporteData.length > 0) {
+            <button class="btn btn-sm" style="margin-top:0.75rem" (click)="descargarReporteCSV()">
+                📥 Descargar CSV
+            </button>
+            }
+
+            @if (reporteLoading) {
+            <div class="section-loading" style="margin-top:2rem"><span class="spinner spinner-lg"></span><span style="margin-left:0.75rem">Generando reporte...</span></div>
+            } @else if (reporteError) {
+            <div class="empty-state animate-fade-in" style="margin-top:2rem">
+                <div class="empty-icon">⚠️</div>
+                <h3>Error</h3>
+                <p>{{ reporteError }}</p>
+            </div>
+            } @else if (reporteData && reporteData.length === 0) {
+            <div class="empty-state animate-fade-in" style="margin-top:2rem">
+                <div class="empty-icon">📭</div>
+                <h3>Sin datos</h3>
+                <p>No hay información disponible para este reporte.</p>
+            </div>
+            } @else if (reporteData && reporteData.length > 0) {
+            <div class="table-container animate-fade-in-up" style="margin-top:1.5rem">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            @for (col of reporteColumnas; track col) {
+                            <th>{{ col }}</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (row of reporteData; track $index) {
+                        <tr>
+                            @for (col of reporteColumnas; track col) {
+                            <td>{{ row[col] ?? '—' }}</td>
+                            }
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            }
+        </div>
+        }
+    </main>
+</div>
+}<!-- end @if (!isStandaloneRoute) -->
+
+<!-- ═══ VISTA EDITOR: Fullscreen sin sidebar ═══ -->
+@if (isStandaloneRoute) {
+<div class="editor-fullscreen">
+  <router-outlet />
+</div>
+}
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- QUIZ EDITOR MODAL                                         -->
+<!-- ══════════════════════════════════════════════════════════ -->
+@if (quizEditorOpen) {
+<div class="modal-backdrop" (click)="cerrarEditorQuiz()" tabindex="-1">
+  <div class="modal-dialog modal-lg quiz-editor-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"
+       aria-label="Editor de preguntas del quiz">
+    <div class="modal-header">
+      <h2 class="modal-title">🧠 Quiz: {{ quizEditEvaluacion.titulo_evaluacion }}</h2>
+      <button class="modal-close" (click)="cerrarEditorQuiz()" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="modal-body">
+      @if (quizEditLoading) {
+      <div class="section-loading"><span class="spinner spinner-lg"></span><span style="margin-left:0.75rem">Cargando preguntas...</span></div>
+      } @else {
+        <!-- Lista de preguntas existentes -->
+        <div class="quiz-editor-header">
+          <h3>Preguntas ({{ quizEditQuestions.length }})</h3>
+          <button class="btn-primary btn-sm" (click)="quizNuevaPregunta()">➕ Agregar pregunta</button>
+        </div>
+
+        @if (quizEditQuestions.length === 0 && (quizEditQuestionIndex === null || quizEditQuestionIndex === -2)) {
+        <div class="empty-state" style="padding:1.5rem">
+          <div class="empty-icon">❓</div>
+          <h3>Sin preguntas</h3>
+          <p>Este quiz aún no tiene preguntas. Haz clic en "Agregar pregunta" para empezar.</p>
+        </div>
+        }
+
+        <div class="quiz-questions-list">
+          @for (p of quizEditQuestions; track $index; let i = $index) {
+          <div class="quiz-q-item" [class.editing]="quizEditQuestionIndex === i">
+            <div class="quiz-q-header">
+              <span class="quiz-q-num">{{ i + 1 }}</span>
+              <span class="quiz-q-enunciado">{{ p.enunciado }}</span>
+              <span class="badge">{{ p.tipo === 'verdadero_falso' ? 'V/F' : 'Múltiple' }}</span>
+            </div>
+            <div class="quiz-q-opciones">
+              @for (o of p.opciones; track $index) {
+              <span class="quiz-q-opt" [class.correcta]="o.es_correcta">
+                {{ o.es_correcta ? '✅' : '○' }} {{ o.texto }}
+              </span>
+              }
+            </div>
+            <div class="quiz-q-actions">
+              <button class="btn-sm btn-edit" (click)="quizEditarPregunta(i)" title="Editar pregunta">✏️</button>
+              <button class="btn-sm btn-delete" (click)="quizEliminarPregunta(i)" title="Eliminar pregunta">🗑️</button>
+            </div>
+          </div>
+          }
+        </div>
+
+        <!-- Editor de pregunta individual -->
+        @if (quizEditQuestionIndex !== -2 && quizEditQuestionIndex !== undefined) {
+        <div class="quiz-q-editor">
+          <h4 class="quiz-q-editor-title">
+            {{ quizEditQuestionIndex === null ? '➕ Nueva pregunta' : '✏️ Editar pregunta' }}
+          </h4>
+
+          <div class="form-group">
+            <label>Enunciado de la pregunta</label>
+            <input class="form-input" [(ngModel)]="quizEditFormEnunciado" placeholder="Ej: ¿Cuánto es 2+2?" />
+          </div>
+
+          <div class="form-group">
+            <label>Tipo de pregunta</label>
+            <select class="form-input" [(ngModel)]="quizEditFormTipo" (change)="quizCambiarTipo()">
+              <option value="opcion_multiple">Opción múltiple</option>
+              <option value="verdadero_falso">Verdadero / Falso</option>
+            </select>
+          </div>
+
+          @if (quizEditFormTipo === 'opcion_multiple') {
+          <div class="form-group">
+            <label>Opciones <small>(marca la correcta)</small></label>
+            @for (opt of quizEditFormOpciones; track $index; let i = $index) {
+            <div class="quiz-opt-row">
+              <button class="quiz-opt-radio" [class.selected]="opt.es_correcta"
+                      (click)="quizEditFormOpciones.forEach(o => o.es_correcta = false); opt.es_correcta = true"
+                      title="Marcar como correcta">{{ opt.es_correcta ? '✅' : '○' }}</button>
+              <input class="form-input" [(ngModel)]="opt.texto" [placeholder]="'Opción ' + (i + 1)" />
+              @if (quizEditFormOpciones.length > 2) {
+              <button class="btn-sm btn-delete" (click)="quizQuitarOpcion(i)" title="Quitar opción">✕</button>
+              }
+            </div>
+            }
+            @if (quizEditFormOpciones.length < 4) {
+            <button class="btn-sm btn-add" (click)="quizAgregarOpcion()" style="margin-top:0.25rem">➕ Agregar opción</button>
+            }
+          </div>
+          } @else {
+          <div class="form-group">
+            <label>Respuesta correcta</label>
+            <div class="quiz-vf-options">
+              <button class="quiz-vf-btn" [class.selected]="quizEditFormOpciones[0]?.es_correcta"
+                      (click)="quizEditFormOpciones = [{texto:'Verdadero', es_correcta:true}, {texto:'Falso', es_correcta:false}]">
+                ✅ Verdadero
+              </button>
+              <button class="quiz-vf-btn" [class.selected]="quizEditFormOpciones[1]?.es_correcta"
+                      (click)="quizEditFormOpciones = [{texto:'Verdadero', es_correcta:false}, {texto:'Falso', es_correcta:true}]">
+                ❌ Falso
+              </button>
+            </div>
+          </div>
+          }
+
+          <div class="quiz-q-editor-actions">
+            <button class="btn-secondary" (click)="quizCancelarEditarPregunta()">Cancelar</button>
+            <button class="btn-primary" (click)="quizGuardarPregunta()">✅ Guardar pregunta</button>
+          </div>
+        </div>
+        }
+
+        <!-- Footer: Guardar todo -->
+        @if (quizEditQuestions.length > 0 && (quizEditQuestionIndex === -2 || quizEditQuestionIndex === undefined)) {
+        <div class="quiz-editor-footer">
+          <button class="btn-primary" (click)="quizGuardarTodo()" [disabled]="quizEditSaving">
+            @if (quizEditSaving) { <span class="spinner"></span> Guardando... }
+            @else { 💾 Guardar quiz completo }
+          </button>
+        </div>
+        }
+      }
+    </div>
+  </div>
+</div>
+}
+
+<!-- ─── Modal: Ver Notas del Quiz ──────────────────────────── -->
+@if (quizResultadosOpen) {
+<div class="modal-backdrop" (click)="cerrarNotasQuiz()" tabindex="-1">
+  <div class="modal-dialog modal-lg" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"
+       aria-label="Notas del quiz">
+    <div class="modal-header">
+      <h2 class="modal-title">📊 Notas: {{ quizResultadosEvaluacion.titulo_evaluacion }}</h2>
+      <button class="modal-close" (click)="cerrarNotasQuiz()" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="modal-body">
+      @if (quizResultadosLoading) {
+      <div class="section-loading"><span class="spinner spinner-lg"></span><span style="margin-left:0.75rem">Cargando resultados...</span></div>
+      } @else if (quizResultadosData.length === 0) {
+      <div class="empty-state" style="padding:1.5rem">
+        <div class="empty-icon">📭</div>
+        <h3>Sin resultados</h3>
+        <p>Ningún estudiante ha completado este quiz aún.</p>
+      </div>
+      } @else {
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Estudiante</th>
+              <th>Nota</th>
+              <th>Aciertos</th>
+              <th>Total</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of quizResultadosData; track $index; let i = $index) {
+            <tr>
+              <td>{{ i + 1 }}</td>
+              <td>{{ r.estudiante || '—' }}</td>
+              <td>
+                <span class="badge" [class.nota-alta]="r.nota >= 60"
+                                   [class.nota-baja]="r.nota < 60">{{ r.nota }}%</span>
+              </td>
+              <td>{{ r.acertadas }}</td>
+              <td>{{ r.total_preguntas }}</td>
+              <td>{{ r.finalizado_en ? (r.finalizado_en | date:'short') : (r.iniciado_en ? (r.iniciado_en | date:'short') : '—') }}</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+    </div>
+  </div>
+</div>
+}
+
+<!-- ─── Modal: Detalle de Clase (estudiantes) ──────────────── -->
+@if (claseDetalleOpen) {
+<div class="modal-backdrop" (click)="cerrarClaseDetalle()" tabindex="-1">
+  <div class="modal-dialog modal-lg" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"
+       aria-label="Detalle de la clase">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        👁 {{ claseDetalle?.titulo || 'Cargando...' }}
+        @if (claseDetalle?.moduloTitulo) {
+        <span class="badge" style="margin-left:0.75rem;font-size:0.75rem;vertical-align:middle">
+          📁 {{ claseDetalle!.moduloTitulo }}
+        </span>
+        }
+      </h2>
+      <button class="modal-close" (click)="cerrarClaseDetalle()" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="modal-body clase-detalle-body">
+      @if (claseDetalleLoading) {
+      <div class="section-loading"><span class="spinner spinner-lg"></span><span style="margin-left:0.75rem">Cargando contenido de la clase...</span></div>
+      } @else if (claseDetalle) {
+      <!-- Información de la clase -->
+      <div class="clase-detalle-info">
+        @if (claseDetalle.descripcion) {
+        <p class="clase-detalle-desc">{{ claseDetalle.descripcion }}</p>
+        }
+        <div class="clase-detalle-meta">
+          @if (claseDetalle.duracionMinutos) {
+          <span class="meta-badge">⏱ {{ claseDetalle.duracionMinutos }} min</span>
+          }
+          @if (claseDetalle.fecha) {
+          <span class="meta-badge">📅 {{ claseDetalle.fecha | date:'mediumDate' }}</span>
+          }
+          @if (claseDetalle.tipoDiscapacidad && claseDetalle.tipoDiscapacidad !== 'Ninguna' && claseDetalle.tipoDiscapacidad !== 'ninguna') {
+          <span class="meta-badge">♿ {{ claseDetalle.tipoDiscapacidad }}</span>
+          }
+        </div>
+        @if (claseDetalle.enlaceRecurso) {
+        <div class="clase-detalle-recurso">
+          <a [href]="claseDetalle.enlaceRecurso" target="_blank" rel="noopener" class="btn-sm btn-link">
+            🔗 Recurso adicional
+          </a>
+        </div>
+        }
+      </div>
+
+      <!-- Materiales -->
+      @if (claseDetalle.materiales.length > 0) {
+      <div class="clase-detalle-seccion">
+        <h3 class="seccion-titulo">📦 Materiales de la clase</h3>
+        <div class="materiales-grid">
+          @for (mat of claseDetalle.materiales; track mat.id) {
+          <div class="material-card">
+            <div class="material-header">
+              @if (mat.tipoRecurso === 'video') {
+              <span class="material-icon">🎬</span>
+              } @else if (mat.tipoRecurso === 'PDF' || mat.tipoRecurso === 'pdf' || mat.tipoRecurso === 'documento') {
+              <span class="material-icon">📄</span>
+              } @else {
+              <span class="material-icon">🔗</span>
+              }
+              <strong class="material-titulo">{{ mat.titulo }}</strong>
+            </div>
+            @if (mat.descripcion) {
+            <p class="material-desc">{{ mat.descripcion }}</p>
+            }
+            @if (mat.urlRecurso) {
+            <div class="material-accion">
+              @if (mat.tipoRecurso === 'video' && (mat.urlRecurso.includes('youtube.com') || mat.urlRecurso.includes('youtu.be') || mat.urlRecurso.includes('vimeo.com'))) {
+              <a [href]="mat.urlRecurso" target="_blank" rel="noopener" class="btn-sm btn-play-material">
+                ▶️ Ver video
+              </a>
+              } @else {
+              <a [href]="mat.urlRecurso" target="_blank" rel="noopener" class="btn-sm btn-link-material">
+                🔗 Abrir recurso
+              </a>
+              }
+            </div>
+            }
+          </div>
+          }
+        </div>
+      </div>
+      }
+
+      <!-- Tareas de la clase -->
+      @if (claseDetalle.tareas.length > 0) {
+      <div class="clase-detalle-seccion">
+        <h3 class="seccion-titulo">📝 Tareas</h3>
+        <div class="tareas-mini-list">
+          @for (tar of claseDetalle.tareas; track tar.id) {
+          <div class="tarea-mini-item">
+            <span class="tarea-mini-icon">📝</span>
+            <div class="tarea-mini-content">
+              <strong>{{ tar.titulo }}</strong>
+              @if (tar.descripcion) { <p>{{ tar.descripcion }}</p> }
+              @if (tar.fechaLimite) { <span class="tarea-mini-fecha">⏰ {{ tar.fechaLimite | date:'mediumDate' }}</span> }
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+      }
+
+      <!-- Quizzes de la clase -->
+      @if (claseDetalle.quizzes.length > 0) {
+      <div class="clase-detalle-seccion">
+        <h3 class="seccion-titulo">📋 Evaluaciones / Quizzes</h3>
+        <div class="quizzes-mini-list">
+          @for (qz of claseDetalle.quizzes; track qz.titulo) {
+          <div class="quiz-mini-item">
+            <span class="quiz-mini-icon">📄</span>
+            <span>{{ qz.titulo }}</span>
+            <span class="badge">{{ qz.porcentaje }}%</span>
+          </div>
+          }
+        </div>
+      </div>
+      }
+
+      @if (claseDetalle.materiales.length === 0 && claseDetalle.tareas.length === 0 && claseDetalle.quizzes.length === 0) {
+      <div class="empty-state" style="padding:1.5rem">
+        <div class="empty-icon">📭</div>
+        <h3>Sin contenido adicional</h3>
+        <p>Esta clase no tiene materiales, tareas o evaluaciones asociadas.</p>
+      </div>
+      }
+      }
+    </div>
+  </div>
+</div>
+}
+
+}

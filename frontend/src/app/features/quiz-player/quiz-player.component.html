@@ -1,0 +1,66 @@
+@if (cargando()) {
+<div class="quiz-container quiz-loading">
+  <div class="spinner"></div>
+  <span>Cargando quiz...</span>
+</div>
+} @else if (error()) {
+<div class="quiz-container quiz-error">
+  <span>⚠️ {{ error() }}</span>
+  <button class="btn-primary" (click)="volver()">Volver</button>
+</div>
+} @else if (resultado()) {
+<div class="quiz-container quiz-resultado">
+  <div class="resultado-card">
+    <div class="resultado-icon">{{ resultado()!.nota >= 70 ? '🎉' : '📚' }}</div>
+    <h2>¡Ya completaste este quiz!</h2>
+    <div class="resultado-nota">{{ resultado()!.nota }}%</div>
+    <div class="resultado-detalle">
+      <span>✅ {{ resultado()!.acertadas }} correctas de {{ resultado()!.total_preguntas }}</span>
+    </div>
+    <button class="btn-primary" (click)="volver()">🏠 Volver al curso</button>
+  </div>
+</div>
+} @else if (quiz(); as q) {
+<div class="quiz-container">
+  <div class="quiz-header">
+    <button class="btn-back" (click)="volver()">← Volver</button>
+    <div class="quiz-info">
+      <h2>{{ q.titulo }}</h2>
+      <p>{{ q.descripcion }}</p>
+    </div>
+    <div class="quiz-progress">
+      <span class="badge">{{ respuestas.size }} / {{ q.preguntas.length }}</span>
+      @if (q.tiempo_limite_min) {
+      <span class="badge timer" [class.warning]="tiempoRestante() < 120">⏱ {{ formatoTiempo() }}</span>
+      }
+    </div>
+  </div>
+  <div class="quiz-body">
+    @for (pregunta of q.preguntas; track pregunta.id; let i = $index) {
+    <div class="pregunta-card" [class.respondida]="respuestas.has(pregunta.id)" [id]="'pregunta-' + pregunta.id">
+      <div class="pregunta-header">
+        <span class="pregunta-num">Pregunta {{ i + 1 }}</span>
+        @if (respuestas.has(pregunta.id)) { <span class="badge-ok">✓ Respondida</span> }
+      </div>
+      <p class="pregunta-enunciado">{{ pregunta.enunciado }}</p>
+      <div class="opciones-grid">
+        @for (opcion of pregunta.opciones; track opcion.id_opcion) {
+        <button class="opcion-btn"
+                [class.seleccionada]="respuestas.get(pregunta.id) === opcion.id_opcion"
+                (click)="seleccionarRespuesta(pregunta.id, opcion.id_opcion)">
+          <span class="opcion-letra">{{ opcion.orden }}</span>
+          <span class="opcion-texto">{{ opcion.texto }}</span>
+        </button>
+        }
+      </div>
+    </div>
+    }
+  </div>
+  <div class="quiz-footer">
+    <p class="footer-hint">Selecciona una opción por pregunta. Puedes cambiar tus respuestas antes de finalizar.</p>
+    <button class="btn-primary btn-finalizar" (click)="finalizarQuiz()" [disabled]="finalizando()">
+      {{ finalizando() ? 'Calificando...' : '✅ Finalizar y calificar' }}
+    </button>
+  </div>
+</div>
+}

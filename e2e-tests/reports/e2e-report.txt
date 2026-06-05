@@ -1,0 +1,20 @@
+[Browser log] [Cacique] onLogin() called. loginEmail: estudiante.e2e@test.com loginPassword length: 13
+[Browser log] [AuthService] login() called. apiUrl: /api
+[Browser log] [AuthService] tap() - setSession called. token: true user: Estudiante E2E Test
+[Browser log] [Cacique] login SUCCESS. token: true user: Estudiante E2E Test
+[Browser log] [Cacique] currentView set to: dashboard token: true user: true
+[Browser log] [Cacique] onLogin() called. loginEmail: estudiante.e2e@test.com loginPassword length: 13
+[Browser log] [AuthService] login() called. apiUrl: /api
+[Browser log] [AuthService] tap() - setSession called. token: true user: Estudiante E2E Test
+[Browser log] [Cacique] login SUCCESS. token: true user: Estudiante E2E Test
+[Browser log] [Cacique] currentView set to: dashboard token: true user: true
+[Browser log] [Cacique] onLogin() called. loginEmail: estudiante.e2e@test.com loginPassword length: 13
+[Browser log] [AuthService] login() called. apiUrl: /api
+[Browser log] [AuthService] tap() - setSession called. token: true user: Estudiante E2E Test
+[Browser log] [Cacique] login SUCCESS. token: true user: Estudiante E2E Test
+[Browser log] [Cacique] currentView set to: dashboard token: true user: true
+[Browser log] [Cacique] onLogin() called. loginEmail: estudiante.e2e@test.com loginPassword length: 13
+[Browser log] [AuthService] login() called. apiUrl: /api
+[Browser log] [AuthService] tap() - setSession called. token: true user: Estudiante E2E Test
+[Browser log] [Cacique] login SUCCESS. token: true user: Estudiante E2E Test
+[Browser log] [Cacique] currentView set to: dashboard token: true user: true

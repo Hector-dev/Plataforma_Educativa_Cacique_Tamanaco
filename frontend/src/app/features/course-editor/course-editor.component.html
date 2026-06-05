@@ -1,0 +1,512 @@
+<!-- ============================================================ -->
+<!-- Editor Visual de Cursos Canvas — Template                     -->
+<!-- Layout: Sidebar | Canvas | Inspector                          -->
+<!-- ============================================================ -->
+
+<!-- ─── Estado de carga / error ─────────────────────────────────── -->
+@if (cargando()) {
+<div class="editor-loading">
+  <div class="spinner"></div>
+  <span>Cargando curso...</span>
+</div>
+}
+
+@if (error()) {
+<div class="editor-error">
+  <span>⚠️ {{ error() }}</span>
+  <button (click)="store.cargarCurso(1)">Reintentar</button>
+</div>
+}
+
+<!-- ─── Layout principal ────────────────────────────────────────── -->
+@if (documento(); as doc) {
+<div class="editor-layout" cdkDropListGroup>
+
+  <!-- ═══════════ TOP BAR ═══════════ -->
+  <header class="top-bar">
+    <div class="top-left">
+      <button class="btn-icon" routerLink="/" title="Volver al Dashboard">
+        🏠
+      </button>
+      <span class="top-title">{{ doc.nombre }}</span>
+      <span class="badge" [class.has-changes]="tieneCambios()">
+        {{ tieneCambios() ? '● Sin guardar' : '● Guardado' }}
+      </span>
+    </div>
+    <div class="top-center">
+      <button class="btn-icon" (click)="deshacer()" [disabled]="!store.puedeDeshacer"
+              title="Deshacer">↩</button>
+      <button class="btn-icon" (click)="rehacer()" [disabled]="!store.puedeRehacer"
+              title="Rehacer">↪</button>
+    </div>
+    <div class="top-right">
+      <button class="btn-icon-theme" (click)="toggleTheme()"
+              [attr.title]="isDark() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
+        {{ isDark() ? '☀️' : '🌙' }}
+      </button>
+      <span class="version">v{{ doc.version }}</span>
+      <button class="btn-outline" [routerLink]="['/cursos', doc.id.replace('c_','')]">
+        👁 Vista previa
+      </button>
+      <button class="btn-primary" (click)="guardar()" [disabled]="guardando() || !tieneCambios()">
+        {{ guardando() ? 'Guardando...' : '💾 Guardar' }}
+      </button>
+    </div>
+  </header>
+
+  <div class="editor-body">
+    <!-- ═══════════ CANVAS (centro) ═══════════ -->
+    <main class="canvas" (click)="store.deseleccionar()">
+      <div class="canvas-header">
+        <h2>📐 Estructura del Curso</h2>
+        <span class="canvas-subtitle">{{ doc.modulos.length }} módulos · {{ contarLecciones(doc) }} clases</span>
+      </div>
+
+      <!-- Canvas root drop zone -->
+      <div class="canvas-root"
+           cdkDropList
+           id="canvas-root"
+           [cdkDropListConnectedTo]="['canvas-root', 'sidebar-items']"
+               [cdkDropListData]="doc.modulos"
+           (cdkDropListDropped)="dropEnCanvas($event)">
+
+        <!-- ── Módulos ───────────────────────────────── -->
+        @for (modulo of doc.modulos; track modulo.id) {
+        <div class="modulo-card"
+             [class.selected]="seleccion()?.moduloId === modulo.id"
+             [class.collapsed]="isModuloCollapsed(modulo.id)"
+             (click)="$event.stopPropagation(); seleccionarModulo(modulo.id)">
+
+          <!-- Cabecera del módulo -->
+          <div class="modulo-header">
+            <button class="btn-collapse" (click)="toggleModulo(modulo.id)">
+              {{ isModuloCollapsed(modulo.id) ? '▶' : '▼' }}
+            </button>
+            <div class="modulo-drag-handle" cdkDragHandle>⋮⋮</div>
+            <div class="modulo-title-area">
+              @if (estaEditando('modulo', modulo.id, 'titulo')) {
+              <input class="inline-input"
+                     [value]="modulo.titulo"
+                     (blur)="guardarEdicionInline($any($event.target).value, 'modulo', modulo.id, 'titulo')"
+                     (keydown.enter)="guardarEdicionInline($any($event.target).value, 'modulo', modulo.id, 'titulo')"
+                     (keydown.escape)="finalizarEdicion()"
+                     autofocus />
+              } @else {
+              <span class="modulo-title"
+                    (dblclick)="iniciarEdicion('modulo', modulo.id, 'titulo')">
+                📁 {{ modulo.titulo }}
+              </span>
+              }
+              <span class="modulo-leccion-count">{{ modulo.lecciones.length }} clases</span>
+            </div>
+            <div class="modulo-actions">
+              <button class="btn-icon-sm" (click)="agregarLeccion(modulo.id)"
+                      title="Agregar clase a este módulo">＋</button>
+              <button class="btn-icon-sm danger" (click)="eliminarModulo(modulo.id)"
+                      title="Eliminar módulo">🗑</button>
+            </div>
+          </div>
+
+          <!-- Cuerpo del módulo: lecciones -->
+          @if (!isModuloCollapsed(modulo.id)) {
+          <div class="modulo-body"
+               cdkDropList
+               [id]="'modulo-' + modulo.id"
+               [cdkDropListData]="modulo.lecciones"
+               [cdkDropListConnectedTo]="['canvas-root']"
+               (cdkDropListDropped)="dropEnModulo($event, modulo.id)">
+
+            @for (leccion of modulo.lecciones; track leccion.id) {
+            <div class="leccion-card"
+                 [class.selected]="$any(seleccion())?.leccionId === leccion.id"
+                 (click)="$event.stopPropagation(); seleccionarLeccion(leccion.id, modulo.id)">
+
+              <div class="leccion-header">
+                <div class="leccion-drag-handle" cdkDragHandle>⋮⋮</div>
+                <div class="leccion-icon">🎬</div>
+                <div class="leccion-title-area">
+                  @if (estaEditando('leccion', leccion.id, 'titulo')) {
+                  <input class="inline-input"
+                         [value]="leccion.titulo"
+                         (blur)="guardarEdicionInline($any($event.target).value, 'leccion', leccion.id, 'titulo', modulo.id)"
+                         (keydown.enter)="guardarEdicionInline($any($event.target).value, 'leccion', leccion.id, 'titulo', modulo.id)"
+                         (keydown.escape)="finalizarEdicion()"
+                         autofocus />
+                  } @else {
+                  <span class="leccion-title"
+                        (dblclick)="iniciarEdicion('leccion', leccion.id, 'titulo')">
+                    {{ leccion.titulo }}
+                  </span>
+                  }
+                  <div class="leccion-meta">
+                    @if (leccion.duracionMinutos) {
+                    <span>⏱ {{ leccion.duracionMinutos }}min</span>
+                    }
+                    @if (leccion.tipoDiscapacidad) {
+                    <span class="tag">♿ {{ leccion.tipoDiscapacidad }}</span>
+                    }
+                    <span>{{ leccion.items.length }} elementos</span>
+                  </div>
+                </div>
+                <div class="leccion-actions">
+                  <button class="btn-icon-sm" (click)="agregarItem(leccion.id, modulo.id, 'tarea')"
+                          title="Agregar tarea">📝</button>
+                  <button class="btn-icon-sm" (click)="agregarItem(leccion.id, modulo.id, 'material')"
+                          title="Agregar material">📎</button>
+                  <button class="btn-icon-sm" (click)="agregarItem(leccion.id, modulo.id, 'evaluacion')"
+                          title="Agregar evaluación">📋</button>
+                  <button class="btn-icon-sm" (click)="agregarItem(leccion.id, modulo.id, 'quiz')"
+                          title="Agregar quiz">🎯</button>
+                  <button class="btn-icon-sm" (click)="toggleLeccion(leccion.id)"
+                          title="Expandir/colapsar">
+                    {{ isLeccionCollapsed(leccion.id) ? '▶' : '▼' }}
+                  </button>
+                  <button class="btn-icon-sm danger" (click)="eliminarLeccion(leccion.id, modulo.id)"
+                          title="Eliminar clase">🗑</button>
+                </div>
+              </div>
+
+              <!-- Ítems de la lección -->
+              @if (!isLeccionCollapsed(leccion.id)) {
+              <div class="leccion-items"
+                   cdkDropList
+                   [id]="'leccion-' + leccion.id"
+                   [cdkDropListData]="leccion.items"
+                   [cdkDropListConnectedTo]="['sidebar-items']"
+                   (cdkDropListDropped)="dropEnLeccion($event, leccion.id, modulo.id)">
+
+                @for (item of leccion.items; track item.id) {
+                <div class="item-card"
+                     [class.selected]="$any(seleccion())?.itemId === item.id"
+                     [style.borderLeftColor]="getColorItem(item.tipo)"
+                     (click)="$event.stopPropagation(); seleccionarItem(item.id, leccion.id, modulo.id)">
+
+                  <div class="item-drag-handle" cdkDragHandle>⋮⋮</div>
+                  <span class="item-icon">{{ getIconoItem(item.tipo) }}</span>
+                  <div class="item-content">
+                    @if (estaEditando('item', item.id, 'titulo')) {
+                    <input class="inline-input"
+                           [value]="item.titulo"
+                           (blur)="guardarEdicionInline($any($event.target).value, 'item', item.id, 'titulo', modulo.id, leccion.id)"
+                           (keydown.enter)="guardarEdicionInline($any($event.target).value, 'item', item.id, 'titulo', modulo.id, leccion.id)"
+                           (keydown.escape)="finalizarEdicion()"
+                           autofocus />
+                    } @else {
+                    <span class="item-title"
+                          (dblclick)="iniciarEdicion('item', item.id, 'titulo')">
+                      {{ item.titulo }}
+                    </span>
+                    }
+                    @if (item.descripcion) {
+                    <span class="item-desc">{{ item.descripcion }}</span>
+                    }
+                  </div>
+                  <div class="item-meta">
+                    @if (($any(item).tipo === 'evaluacion' || $any(item).tipo === 'quiz') && $any(item).porcentaje) {
+                    <span class="badge-eval">{{ $any(item).porcentaje }}%</span>
+                    }
+                  </div>
+                  <button class="btn-icon-sm"
+                          (click)="$event.stopPropagation(); seleccionarItem(item.id, leccion.id, modulo.id)"
+                          title="Editar elemento">✏️</button>
+                  <button class="btn-icon-sm danger"
+                          (click)="eliminarItem(leccion.id, modulo.id, item.id)"
+                          title="Eliminar elemento">🗑</button>
+                </div>
+                }
+
+                <!-- Placeholder cuando no hay items -->
+                @if (leccion.items.length === 0) {
+                <div class="empty-items">
+                  <span>Arrastra elementos aquí o usa los botones ＋</span>
+                </div>
+                }
+              </div>
+              }
+            </div>
+            }
+
+            <!-- Placeholder cuando no hay lecciones -->
+            @if (modulo.lecciones.length === 0) {
+            <div class="empty-lecciones">
+              <span>Arrastra clases aquí o haz clic en ＋</span>
+              <button class="btn-empty-action" (click)="agregarLeccion(modulo.id)">➕ Agregar Clase</button>
+            </div>
+            }
+          </div>
+          }
+        </div>
+        }
+
+        <!-- ── Lecciones sueltas ───────────────────────────── -->
+        @if (doc.leccionesSueltas.length > 0) {
+        <div class="seccion-sueltas">
+          <h4>📌 Clases sin módulo</h4>
+          @for (leccion of doc.leccionesSueltas; track leccion.id) {
+          <!-- misma estructura que leccion-card, simplificada -->
+          <div class="leccion-card suelta"
+               [class.selected]="$any(seleccion())?.leccionId === leccion.id"
+               (click)="$event.stopPropagation(); seleccionarLeccion(leccion.id, null)">
+            <div class="leccion-header">
+              <div class="leccion-drag-handle">⋮⋮</div>
+              <div class="leccion-icon">🎬</div>
+              <span class="leccion-title">{{ leccion.titulo }}</span>
+              <span class="leccion-meta-text">{{ leccion.items.length }} elementos</span>
+            </div>
+          </div>
+          }
+        </div>
+        }
+
+        <!-- Botón agregar módulo al final -->
+        <button class="btn-add-module" (click)="agregarModulo()">
+          ➕ Agregar Módulo
+        </button>
+      </div>
+    </main>
+
+    <!-- ═══════════ INSPECTOR (derecha) ═══════════ -->
+    <aside class="inspector" [class.collapsed]="!inspectorAbierto()">
+      <div class="inspector-header">
+        <h3>🔍 Inspector</h3>
+        <button class="btn-icon-sm" (click)="inspectorAbierto.set(!inspectorAbierto())">✕</button>
+      </div>
+
+      @if (store.elementoSeleccionado(); as elem) {
+      <div class="inspector-content">
+        <div class="inspector-type-badge" [style.background]="getColorItem(elem.tipo)">
+          {{ elem.tipo === 'modulo' ? '📁 Módulo' : elem.tipo === 'leccion' ? '🎬 Clase' : getIconoItem(elem.datos.tipo || '') + ' ' + elem.datos.tipo }}
+        </div>
+
+        <!-- Propiedades comunes -->
+        <div class="inspector-field">
+          <label>Título</label>
+          <input [ngModel]="elem.datos.titulo"
+                 (ngModelChange)="actualizarPropiedad(elem, 'titulo', $event)" />
+        </div>
+
+        <div class="inspector-field">
+          <label>Descripción</label>
+          <textarea [ngModel]="elem.datos.descripcion"
+                    (ngModelChange)="actualizarPropiedad(elem, 'descripcion', $event)"
+                    rows="3"></textarea>
+        </div>
+
+        <!-- Propiedades de lección -->
+        @if (elem.tipo === 'leccion') {
+        <div class="inspector-field">
+          <label>Duración (minutos)</label>
+          <input type="number" [ngModel]="$any(elem.datos).duracionMinutos"
+                 (ngModelChange)="actualizarPropiedad(elem, 'duracionMinutos', $event)" />
+        </div>
+        <div class="inspector-field">
+          <label>Tipo de discapacidad</label>
+          <select [ngModel]="$any(elem.datos).tipoDiscapacidad"
+                  (ngModelChange)="actualizarPropiedad(elem, 'tipoDiscapacidad', $event)">
+            <option [ngValue]="null">Ninguna</option>
+            <option value="visual">Visual</option>
+            <option value="auditiva">Auditiva</option>
+            <option value="motora">Motora</option>
+            <option value="cognitiva">Cognitiva</option>
+          </select>
+        </div>
+        <div class="inspector-field">
+          <label>Enlace de recurso</label>
+          <input [ngModel]="$any(elem.datos).enlaceRecurso"
+                 (ngModelChange)="actualizarPropiedad(elem, 'enlaceRecurso', $event)"
+                 placeholder="https://..." />
+        </div>
+        <div class="inspector-field">
+          <label>Fecha</label>
+          <input type="date" [value]="$any(elem.datos).fecha ? ($any(elem.datos).fecha | slice:0:10) : ''"
+                 (input)="actualizarPropiedad(elem, 'fecha', $any($event.target).value)"
+                 placeholder="AAAA-MM-DD" />
+        </div>
+        }
+
+        <!-- Propiedades de evaluación / quiz -->
+        @if (elem.tipo === 'item' && ($any(elem.datos).tipo === 'evaluacion' || $any(elem.datos).tipo === 'quiz')) {
+        <div class="inspector-field">
+          <label>Porcentaje de nota</label>
+          <input type="number" min="0" max="100" [ngModel]="$any(elem.datos).porcentaje"
+                 (ngModelChange)="actualizarPropiedad(elem, 'porcentaje', $event)" />
+        </div>
+        @if ($any(elem.datos).tipo === 'quiz') {
+        <div class="inspector-field">
+          <button class="btn-primary btn-block" style="margin-top:8px"
+                  (click)="abrirEditorQuizDesdeSeleccion()">
+            🎯 Editar preguntas
+          </button>
+        </div>
+        }
+        }
+
+        <!-- Propiedades de material -->
+        @if (elem.tipo === 'item' && $any(elem.datos).tipo === 'material') {
+        <div class="inspector-field">
+          <label>URL del recurso</label>
+          <input [ngModel]="$any(elem.datos).urlRecurso"
+                 (ngModelChange)="actualizarPropiedad(elem, 'urlRecurso', $event)"
+                 placeholder="https://..." />
+        </div>
+        <div class="inspector-field">
+          <label>Tipo de recurso</label>
+          <select [ngModel]="$any(elem.datos).tipoRecurso"
+                  (ngModelChange)="actualizarPropiedad(elem, 'tipoRecurso', $event)">
+            <option value="documento">Documento</option>
+            <option value="video">Video</option>
+            <option value="enlace">Enlace</option>
+            <option value="imagen">Imagen</option>
+          </select>
+        </div>
+        }
+
+        <!-- Propiedades de tarea -->
+        @if (elem.tipo === 'item' && $any(elem.datos).tipo === 'tarea') {
+        <div class="inspector-field">
+          <label>Fecha límite</label>
+          <input type="date" [value]="$any(elem.datos).fechaLimite ? ($any(elem.datos).fechaLimite | slice:0:10) : ''"
+                 (input)="actualizarPropiedad(elem, 'fechaLimite', $any($event.target).value)"
+                 placeholder="AAAA-MM-DD" />
+        </div>
+        }
+      </div>
+      } @else {
+      <div class="inspector-empty">
+        <p>👆 Selecciona un elemento en el canvas para ver sus propiedades</p>
+      </div>
+      }
+    </aside>
+
+    <!-- Toggle inspector en responsive -->
+    <button class="toggle-inspector" (click)="inspectorAbierto.set(!inspectorAbierto())" 
+            [attr.aria-label]="inspectorAbierto() ? 'Cerrar inspector' : 'Abrir inspector'"
+            [attr.title]="inspectorAbierto() ? 'Cerrar inspector' : 'Abrir inspector'">
+      {{ inspectorAbierto() ? '▶' : '◀' }}
+    </button>
+
+    <!-- Backdrop para inspector en responsive -->
+    <div class="inspector-backdrop" [class.visible]="inspectorAbierto()" 
+         (click)="inspectorAbierto.set(false)" aria-hidden="true"></div>
+  </div>
+</div>
+
+<!-- ═══════════ MODAL: Editor de Quiz ═══════════ -->
+@if (quizEditorOpen()) {
+<div class="quiz-modal-backdrop" (click)="cerrarEditorQuiz()" (keydown.escape)="cerrarEditorQuiz()" tabindex="-1">
+  <div class="quiz-modal-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="quiz-modal-header">
+      <h2>🎯 Editor de Preguntas</h2>
+      <button class="btn-icon-sm" (click)="cerrarEditorQuiz()">✕</button>
+    </div>
+
+    <div class="quiz-modal-body">
+      @if (quizEditLoading()) {
+      <div class="section-loading"><span class="spinner spinner-lg"></span></div>
+      } @else {
+      <!-- ─── Lista de preguntas existentes ─── -->
+      <div class="quiz-preguntas-list">
+        <h3>Preguntas ({{ quizEditPreguntas.length }})</h3>
+        @for (p of quizEditPreguntas; track $index) {
+        <div class="quiz-pregunta-item">
+          <div class="quiz-pregunta-header">
+            <span class="quiz-pregunta-num">#{{ $index + 1 }}</span>
+            <span class="quiz-pregunta-enunciado">{{ p.enunciado }}</span>
+            <span class="quiz-pregunta-tipo">{{ p.tipo === 'verdadero_falso' ? 'V/F' : 'Múltiple' }}</span>
+          </div>
+          <div class="quiz-pregunta-opciones">
+            @for (o of p.opciones; track $index) {
+            <span class="quiz-opcion-tag" [class.correcta]="o.es_correcta">
+              {{ o.es_correcta ? '✅' : '⬜' }} {{ o.texto }}
+            </span>
+            }
+          </div>
+          <div class="quiz-pregunta-actions">
+            <button class="btn-icon-sm" (click)="quizEditarPregunta($index)" title="Editar">✏️</button>
+            <button class="btn-icon-sm danger" (click)="quizEliminarPregunta($index)" title="Eliminar">🗑</button>
+          </div>
+        </div>
+        }
+
+        @if (quizEditPreguntas.length === 0) {
+        <div class="empty-state" style="padding:1rem">
+          <p>No hay preguntas aún. Agrega la primera.</p>
+        </div>
+        }
+      </div>
+
+      <!-- ─── Botón nueva pregunta ─── -->
+      @if (quizEditQuestionIndex !== -2) {
+      <button class="btn-outline" style="width:100%;margin-bottom:16px"
+              (click)="quizNuevaPregunta()">
+        ➕ Agregar Pregunta
+      </button>
+      }
+
+      <!-- ─── Formulario de pregunta ─── -->
+      @if (quizEditQuestionIndex !== -2) {
+      <div class="quiz-pregunta-form">
+        <h4>{{ quizEditQuestionIndex === null ? 'Nueva Pregunta' : 'Editar Pregunta' }}</h4>
+
+        <div class="form-group">
+          <label>Enunciado</label>
+          <textarea [(ngModel)]="quizEditFormEnunciado" rows="2"
+                    placeholder="Escribe la pregunta..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Tipo</label>
+          <select [(ngModel)]="quizEditFormTipo">
+            <option value="opcion_multiple">Opción Múltiple</option>
+            <option value="verdadero_falso">Verdadero / Falso</option>
+          </select>
+        </div>
+
+        @if (quizEditFormTipo === 'verdadero_falso') {
+        <div class="form-group vf-group">
+          <label class="vf-option" [class.selected]="quizEditFormOpciones[0]?.es_correcta"
+                 (click)="quizEditFormOpciones = [{texto:'Verdadero', es_correcta: true}, {texto:'Falso', es_correcta: false}]">
+            ✅ Verdadero
+          </label>
+          <label class="vf-option" [class.selected]="quizEditFormOpciones[1]?.es_correcta"
+                 (click)="quizEditFormOpciones = [{texto:'Verdadero', es_correcta: false}, {texto:'Falso', es_correcta: true}]">
+            ❌ Falso
+          </label>
+        </div>
+        } @else {
+        <div class="form-group">
+          <label>Opciones <span class="text-secondary">(marca la correcta)</span></label>
+          @for (op of quizEditFormOpciones; track $index) {
+          <div class="opcion-row">
+            <input type="checkbox" [checked]="op.es_correcta"
+                   (change)="op.es_correcta = !op.es_correcta"
+                   title="Marcar como correcta">
+            <input type="text" [(ngModel)]="op.texto" placeholder="Opción {{ $index + 1 }}">
+            <button class="btn-icon-sm danger" (click)="quizEliminarOpcion($index)"
+                    title="Eliminar opción">✕</button>
+          </div>
+          }
+          <button class="btn-link" (click)="quizAgregarOpcion()">➕ Agregar opción</button>
+        </div>
+        }
+
+        <div class="form-actions">
+          <button class="btn-outline" (click)="quizCancelarEditarPregunta()">Cancelar</button>
+          <button class="btn-primary" (click)="quizGuardarPregunta()"
+                  [disabled]="!quizEditFormEnunciado.trim()">💾 Guardar Pregunta</button>
+        </div>
+      </div>
+      }
+      }
+    </div>
+
+    <div class="quiz-modal-footer">
+      <button class="btn-outline" (click)="cerrarEditorQuiz()">Cerrar</button>
+      <button class="btn-primary" (click)="quizGuardarTodo()" [disabled]="quizEditSaving() || quizEditPreguntas.length === 0">
+        {{ quizEditSaving() ? 'Guardando...' : '💾 Guardar Quiz' }}
+      </button>
+    </div>
+  </div>
+</div>
+}
+}

@@ -1,0 +1,87 @@
+{
+  "timestamp": "2026-06-02T18:46:21.277Z",
+  "suite": "E2E PWA Cacique Tamanaco",
+  "total": 13,
+  "passed": 13,
+  "failed": 0,
+  "results": [
+    {
+      "name": "S1 - Login admin vía API",
+      "passed": true,
+      "detail": "Token obtenido",
+      "timestamp": "2026-06-02T18:46:12.054Z"
+    },
+    {
+      "name": "S2 - Estudiante E2E",
+      "passed": true,
+      "detail": "Creado: id=11",
+      "timestamp": "2026-06-02T18:46:12.115Z"
+    },
+    {
+      "name": "S3 - Curso E2E encontrado",
+      "passed": true,
+      "detail": "idCurso=7",
+      "timestamp": "2026-06-02T18:46:12.118Z"
+    },
+    {
+      "name": "S3 - Matricular estudiante",
+      "passed": true,
+      "detail": "Estudiante 11 → Curso 7",
+      "timestamp": "2026-06-02T18:46:12.125Z"
+    },
+    {
+      "name": "Navegador iniciado",
+      "passed": true,
+      "detail": "Chromium headless",
+      "timestamp": "2026-06-02T18:46:12.199Z"
+    },
+    {
+      "name": "Login estudiante",
+      "passed": true,
+      "detail": "Login exitoso",
+      "timestamp": "2026-06-02T18:46:16.897Z"
+    },
+    {
+      "name": "Dashboard visible",
+      "passed": true,
+      "detail": "OK",
+      "timestamp": "2026-06-02T18:46:16.934Z"
+    },
+    {
+      "name": "Lista de cursos visible",
+      "passed": true,
+      "detail": "Se ve Curso E2E Test",
+      "timestamp": "2026-06-02T18:46:18.984Z"
+    },
+    {
+      "name": "Clases expandidas",
+      "passed": true,
+      "detail": "Se ven clases y evaluaciones",
+      "timestamp": "2026-06-02T18:46:21.068Z"
+    },
+    {
+      "name": "Evaluaciones visibles",
+      "passed": true,
+      "detail": "2 evaluaciones: 📄Tarea E2E 0125.00%, Tarea E2E 01",
+      "timestamp": "2026-06-02T18:46:21.115Z"
+    },
+    {
+      "name": "Obtener evaluaciones del curso",
+      "passed": true,
+      "detail": "1 evaluaciones, usando id=7",
+      "timestamp": "2026-06-02T18:46:21.170Z"
+    },
+    {
+      "name": "POST /api/entregas (URL)",
+      "passed": true,
+      "detail": "Entrega registrada: id=7",
+      "timestamp": "2026-06-02T18:46:21.233Z"
+    },
+    {
+      "name": "API: curso sigue accesible",
+      "passed": true,
+      "detail": "1 evaluaciones",
+      "timestamp": "2026-06-02T18:46:21.235Z"
+    }
+  ]
+}

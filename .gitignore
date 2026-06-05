@@ -1,0 +1,74 @@
+# ─── Dependencias ──────────────────────────────────────
+node_modules/
+.pnp/
+.pnp.js
+
+# ─── Build outputs ─────────────────────────────────────
+dist/
+build/
+out/
+*.tsbuildinfo
+.angular/
+cache/
+
+# ─── Entorno / Secrets ─────────────────────────────────
+.env
+.env.local
+.env.production
+*.pem
+*.key
+*.crt
+
+# ─── Datos persistentes (no versionar) ─────────────────
+data/postgres/
+uploads/entregas/*
+!uploads/entregas/.gitkeep
+
+# ─── Docker images exportadas ──────────────────────────
+docker-images/
+*.tar
+
+# ─── Reports y logs ─────────────────────────────────────
+e2e-reports-*/
+e2e-tests/reports/*.png
+*.log
+npm-debug.log*
+
+# ─── Archivos temporales / binarios ────────────────────
+*.jpe
+*.rar
+*.zip
+*.7z
+
+# ─── Sistema operativo ─────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ─── IDE / Editor ──────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+# ─── Tests / Coverage ──────────────────────────────────
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# ─── Offline package (generado, no versionar) ──────────
+offline-package/
+
+# ─── Temp files ────────────────────────────────────────
+tmp/
+temp/
+*.tmp
