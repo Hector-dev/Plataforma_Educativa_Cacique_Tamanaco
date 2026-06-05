@@ -31,7 +31,10 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction): void =
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
 
     try {
-        const secret = process.env.JWT_SECRET || 'cacique_tamanaco_secret_key_2024';
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            throw new Error('[CRÍTICO] JWT_SECRET no está definido en variables de entorno. El servidor no puede validar tokens.');
+        }
         const decoded = jwt.verify(token, secret) as {
             id: number;
             email: string;

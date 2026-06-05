@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { query } from '../db';
@@ -13,8 +14,20 @@ import {
 
 const router = Router();
 
+// ─── Rate Limiter para /login (anti fuerza bruta) ────────
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,   // 15 minutos
+    max: 10,                     // 10 intentos por ventana por IP
+    standardHeaders: true,       // RateLimit-* headers
+    legacyHeaders: false,
+    message: {
+        success: false,
+        message: 'Demasiados intentos de inicio de sesión. Intente de nuevo en 15 minutos.',
+    },
+});
+
 // ─── Login público (sin middleware) ───────────────────────
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -41,7 +54,10 @@ router.post('/login', async (req, res) => {
             return;
         }
 
-        const secret = process.env.JWT_SECRET || 'cacique_tamanaco_secret_key_2024';
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            throw new Error('[CRÍTICO] JWT_SECRET no está definido en variables de entorno. El servidor no puede firmar tokens.');
+        }
         const token = jwt.sign(
             { id: user.id_usuario, email: user.email, rol: user.rol },
             secret,

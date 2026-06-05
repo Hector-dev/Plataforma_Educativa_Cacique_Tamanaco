@@ -1,5 +1,8 @@
-import express, { Application, Request, Response } from 'express';
+import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 
 import usuarioRoutes from './routes/usuarioRoutes';
@@ -22,12 +25,42 @@ const PORT = process.env.PORT || 3000;
 // Middlewares globales
 // ============================================================
 
-// CORS
-app.use(cors());
+// Security headers (CSP, HSTS, X-Frame-Options, X-Content-Type, etc.)
+app.use(helmet());
 
-// Parseo de JSON y urlencoded
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Compresión gzip/brotli para respuestas JSON
+app.use(compression());
+
+// CORS — solo orígenes permitidos
+const allowedOrigins = [
+    'http://localhost',
+    'http://localhost:4200',              // Angular dev server
+    process.env.CORS_ORIGIN,              // Dominio de producción
+].filter(Boolean) as string[];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Permitir requests sin origin (server-to-server, Postman, curl)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error(`Origen no permitido por CORS: ${origin}`));
+        }
+    },
+    credentials: true,
+}));
+
+// X-Request-Id — trazabilidad única por request
+app.use((_req: Request, res: Response, next: NextFunction) => {
+    const id = crypto.randomUUID();
+    res.setHeader('X-Request-Id', id);
+    (_req as any).requestId = id;
+    next();
+});
+
+// Parseo de JSON y urlencoded — body limitado a 1MB
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Servir archivos estáticos (uploads)
 app.use('/uploads', express.static('uploads'));
