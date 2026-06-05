@@ -34,9 +34,9 @@
       </span>
     </div>
     <div class="top-center">
-      <button class="btn-icon" (click)="deshacer()" [disabled]="!store.puedeDeshacer"
+      <button class="btn-icon" (click)="deshacer()" [disabled]="!store.puedeDeshacer()"
               title="Deshacer">↩</button>
-      <button class="btn-icon" (click)="rehacer()" [disabled]="!store.puedeRehacer"
+      <button class="btn-icon" (click)="rehacer()" [disabled]="!store.puedeRehacer()"
               title="Rehacer">↪</button>
     </div>
     <div class="top-right">

@@ -1,4 +1,5 @@
 import { inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
@@ -10,7 +11,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   const authService = inject(AuthService);
+  const router = inject(Router);
   const token = authService.getToken();
+
+  const handle401 = () => {
+    authService.logout();
+    const returnUrl = window.location.pathname !== '/' ? window.location.pathname : '/dashboard';
+    router.navigate(['/'], { queryParams: { returnUrl } });
+  };
 
   if (token) {
     const cloned = req.clone({
@@ -21,8 +29,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return next(cloned).pipe(
       catchError((error: HttpErrorResponse) => {
         if (error.status === 401) {
-          authService.logout();
-          window.location.reload();
+          handle401();
         }
         return throwError(() => error);
       })
@@ -32,8 +39,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
-        authService.logout();
-        window.location.reload();
+        handle401();
       }
       return throwError(() => error);
     })

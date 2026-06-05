@@ -43,7 +43,8 @@ export class OfflineStorageService extends Dexie {
   }
 
   async getPendingAsistencias() {
-    return await this.asistencias.where('sincronizado').equals(0).toArray(); // Dexie usa 0 para false en algunos casos o boolean directo
+    // Dexie TS types restringen equals() a IndexableType, pero booleans funcionan en runtime
+    return await this.asistencias.where('sincronizado').equals(0 as any).toArray();
   }
 
   async markAsistenciaSynced(ids: number[]) {
@@ -56,7 +57,7 @@ export class OfflineStorageService extends Dexie {
   }
 
   async getPendingEvaluaciones() {
-    return await this.evaluaciones.where('sincronizado').equals(0).toArray();
+    return await this.evaluaciones.where('sincronizado').equals(0 as any).toArray();
   }
 
   async markEvaluacionSynced(ids: number[]) {
