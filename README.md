@@ -12,6 +12,7 @@
   <img src="https://img.shields.io/badge/docker-27-2496ED?logo=docker" alt="Docker 27" />
   <img src="https://img.shields.io/badge/express-4.x-000000?logo=express" alt="Express 4.x" />
   <img src="https://img.shields.io/badge/pwa-ready-5A0FC8?logo=pwa" alt="PWA Ready" />
+  <img src="https://img.shields.io/badge/v0.1-FF6F00?logo=git" alt="v0.1" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License MIT" />
 </p>
 
@@ -24,8 +25,9 @@
 - [📋 Requisitos](#-requisitos)
 - [🚀 Instalación](#-instalación)
   - [Opción A: Docker (recomendado)](#opción-a-docker-recomendado)
-  - [Opción B: Desarrollo manual](#opción-b-desarrollo-manual)
+  - [Opción B: Sin Docker (desarrollo manual)](#opción-b-sin-docker-desarrollo-manual)
 - [🔐 Acceso inicial](#-acceso-inicial)
+- [Configuración de Secrets](#-configuración-de-secrets)
 - [📂 Estructura del proyecto](#-estructura-del-proyecto)
 - [🛠️ Comandos útiles](#️-comandos-útiles)
 - [📱 Funcionalidades](#-funcionalidades)
@@ -87,45 +89,50 @@ graph TB
 
 ## 🚀 Instalación
 
-### Opción A: Docker (recomendado)
+### Opción A: Docker (recomendado) — **Sin necesidad de .env**
 
 ```bash
-# 1. Clonar rama producción
-git clone -b produccion https://github.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco.git
+# 1. Clonar rama v0.1
+git clone -b v0.1 https://github.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco.git
 cd Plataforma_Educativa_Cacique_Tamanaco
 
-# 2. Copiar y configurar variables de entorno
-cp .env.example .env
-# Editar .env con tus propias contraseñas (IMPORTANTE)
-nano .env
-
-# 3. Construir y levantar
+# 2. Construir y levantar (SIN .env — secrets se auto-generan)
 docker compose up --build -d
 
-# 4. Verificar
+# 3. Verificar
 docker compose ps
-curl http://localhost:3000/api/health
+curl http://localhost/api/health
 ```
 
 **¡Listo!** Abre http://localhost en tu navegador.
 
-### Opción B: Desarrollo manual
+> 💡 **No necesitas crear `.env`.** Si existe, sus valores tienen prioridad.
+> Si no existe, Postgres usa `postgres:postgres` por defecto y los secrets
+> (JWT, cifrado AES) se auto-generan con `crypto.randomBytes(32)` en el primer
+> arranque y se persisten en un volumen Docker dedicado (`cacique_secrets`).
+
+### Opción B: Sin Docker (desarrollo manual)
 
 ```bash
 # Requiere Node.js 20+ y PostgreSQL 16 instalados
 
 # 1. Clonar
-git clone -b produccion https://github.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco.git
+git clone -b v0.1 https://github.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco.git
 cd Plataforma_Educativa_Cacique_Tamanaco
 
-# 2. Backend
+# 2. Crear .env con conexión a tu PostgreSQL local
+cp .env.example .env
+# Editar .env con tus datos locales
+nano .env
+
+# 3. Backend
 cd backend
 cp .env.example .env     # Configurar conexión a PostgreSQL
 npm ci
 npm run build
 npm start                # API en :3000
 
-# 3. Frontend (otra terminal)
+# 4. Frontend (otra terminal)
 cd frontend
 npm ci
 npx ng serve             # Dev server en :4200
@@ -137,28 +144,51 @@ npx ng serve             # Dev server en :4200
 
 | Campo | Valor |
 |-------|-------|
-| Email | `admin@admin.com` |
-| Contraseña | `admin` |
+| URL | http://localhost |
+| Email (seed) | `admin@admin.com` |
+| Contraseña (seed) | `admin` |
 | Rol | Administrador |
 
-> ⚠️ **Cambia la contraseña inmediatamente** desde el panel de usuarios.
+> 💡 **Primer arranque sin seeds:** Si eliminas los scripts de init, la app
+> muestra un **Setup Wizard** automático al entrar a http://localhost.
+> Crea el admin desde la web — sin terminal, sin `.env`.
+
+> ⚠️ Si usas los seeds, cambia la contraseña desde el panel de usuarios.
 
 ---
 
-## 📂 Estructura del proyecto
+## � Configuración de Secrets (auto-generación)
+
+v0.1 introduce un sistema de auto-generación de claves que elimina la dependencia de `.env`:
+
+| Secreto | Generación | Persistencia |
+|---------|-----------|--------------|
+| `JWT_SECRET` | `crypto.randomBytes(32).toString('hex')` | Volumen `cacique_secrets` |
+| `ENCRYPTION_KEY` | `crypto.randomBytes(32).toString('hex')` | Volumen `cacique_secrets` |
+| `ENCRYPTION_IV` | `crypto.randomBytes(16).toString('hex')` | Volumen `cacique_secrets` |
+
+**Prioridad:**
+1. Variables de entorno (`.env` o `environment` en compose)
+2. Archivo `/app/data/.secrets.json` persistido (re-arranques)
+3. Auto-generación fresca si no existe nada
+
+El módulo `backend/src/config.ts` centraliza toda la lógica. Los secrets se
+guardan en `/app/data/.secrets.json` con permisos `0600` dentro de un volumen
+Docker dedicado, aislado del host.
 
 ```
 .
-├── docker-compose.yml          # Orquestación de servicios
-├── .env.example                # Plantilla de variables de entorno
+├── docker-compose.yml          # Orquestación de servicios + volumen cacique_secrets
+├── .env.example                # Plantilla de variables de entorno (ahora opcional)
 ├── .gitignore
 │
 ├── backend/                    # API REST (Express + TypeScript)
 │   ├── Dockerfile
 │   ├── src/
 │   │   ├── app.ts              # Entry point + middlewares + rutas
+│   │   ├── config.ts           # ⭐ Central de secrets (auto-generación JWT/AES)
 │   │   ├── db.ts               # Pool PostgreSQL
-│   │   ├── controllers/        # Lógica de negocio (11 controladores)
+│   │   ├── controllers/        # Lógica de negocio (12 controladores)
 │   │   ├── middleware/         # Auth (JWT) + Upload (multer)
 │   │   ├── routes/             # Definición de endpoints
 │   │   └── utils/              # Crypto (AES-256)
@@ -169,14 +199,16 @@ npx ng serve             # Dev server en :4200
 │   ├── nginx.conf              # Proxy reverso → backend
 │   ├── src/app/
 │   │   ├── core/               # Servicios, interceptors, modelos
-│   │   └── features/           # Course editor, Quiz player
+│   │   └── features/           # Course editor, Quiz player, Setup Wizard ⭐
 │   └── public/icons/           # PWA icons
 │
 ├── init-scripts/               # SQL auto-ejecutables (DDL + DML + migrations)
 │   ├── 01_ddl.sql              # Esquema de tablas
 │   ├── 02_dml.sql              # Usuario admin seed
+│   ├── 03_e2e_seed.sql         # Datos demo para pruebas E2E
 │   ├── 03_migration_canvas.sql # Migración editor canvas
 │   ├── 04_quiz.sql             # Sistema de quizzes
+│   ├── 04_seed_demo_completo.sql # Curso demo completo (todos los tipos)
 │   └── 05_migracion_fecha_asistencia.sql
 │
 ├── e2e-tests/                  # Tests end-to-end (Playwright)
@@ -212,11 +244,11 @@ docker compose down -v
 # Reconstruir después de cambios
 docker compose up --build -d
 
-# Backup de BD
-docker exec cacique-postgres pg_dump -U cacique_admin cacique_tamanaco_db > backup.sql
+# Backup de BD (reemplazar USER por el de tu .env, o postgres si usas defaults)
+docker exec cacique-postgres pg_dump -U postgres cacique_tamanaco_db > backup.sql
 
 # Restaurar BD
-docker exec -i cacique-postgres psql -U cacique_admin cacique_tamanaco_db < backup.sql
+docker exec -i cacique-postgres psql -U postgres cacique_tamanaco_db < backup.sql
 ```
 
 ---
@@ -225,6 +257,11 @@ docker exec -i cacique-postgres psql -U cacique_admin cacique_tamanaco_db < back
 
 ### 📊 Dashboard
 Panel KPI con métricas en tiempo real, gráficos interactivos (Chart.js), acceso rápido a todas las secciones.
+
+### ⚙️ Setup Wizard (Primer Arranque)
+Si no hay semillas precargadas, la app detecta la ausencia de admin y redirige
+al **Setup Wizard** automático. Paso a paso: configuración del servidor, creación
+del admin y confirmación. Sin terminal, sin `.env`.
 
 ### 👥 Gestión de Usuarios
 CRUD completo con roles: **Administrador**, **Docente**, **Estudiante**. Filtros por rol, búsqueda, modal de creación/edición.
