@@ -18,17 +18,23 @@ declare global {
 }
 
 const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
-    const authHeader = req.headers.authorization;
+    // Preferir cookie HttpOnly; mantener fallback a header Authorization
+    // para compatibilidad con clientes que no manejen cookies (ej. scripts).
+    let token: string | undefined;
+    if (req.cookies && typeof req.cookies.token === 'string') {
+        token = req.cookies.token;
+    } else {
+        const authHeader = req.headers.authorization;
+        token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    }
 
-    if (!authHeader) {
+    if (!token) {
         res.status(401).json({
             success: false,
             message: 'Token de autenticación no proporcionado',
         });
         return;
     }
-
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
 
     try {
         const secret = process.env.JWT_SECRET;
@@ -79,7 +85,8 @@ export const requireRole = (...roles: string[]) => {
         }
 
         // Normalizar roles: "Administrador" y "admin" son equivalentes
-        const userRoleNorm = req.user.rol.toLowerCase() === 'administrador' ? 'admin' : req.user.rol.toLowerCase();
+        const userRoleRaw = req.user.rol || '';
+        const userRoleNorm = userRoleRaw.toLowerCase() === 'administrador' ? 'admin' : userRoleRaw.toLowerCase();
 
         if (!roles.some(r => r.toLowerCase() === userRoleNorm)) {
             res.status(403).json({

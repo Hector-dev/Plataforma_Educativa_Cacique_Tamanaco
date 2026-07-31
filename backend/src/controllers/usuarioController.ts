@@ -2,6 +2,7 @@ import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { query } from '../db';
+import { esAdmin } from '../utils/authorization';
 import { crearUsuarioSchema, actualizarUsuarioSchema, listarUsuariosQuerySchema } from '../utils/validators';
 
 // ============================================================
@@ -244,7 +245,15 @@ export const actualizarUsuario = async (req: Request, res: Response): Promise<vo
             fields.push(`password = $${paramIndex++}`);
             values.push(passwordHash);
         }
+        // Solo los administradores pueden cambiar el rol de un usuario.
         if (rol !== undefined) {
+            if (!req.user || !esAdmin(req.user.rol)) {
+                res.status(403).json({
+                    success: false,
+                    message: 'No tiene permiso para cambiar el rol de usuario',
+                });
+                return;
+            }
             fields.push(`rol = $${paramIndex++}`);
             values.push(rol);
         }

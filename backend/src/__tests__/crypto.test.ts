@@ -107,9 +107,10 @@ describe('Módulo de Criptografía AES-256-CBC (v2 — IV aleatorio)', () => {
             const original = 'V-12345678';
             const cifrado = encryptAES(original);
 
-            // Alteramos la parte de datos (después del separador ':')
+            // Alteramos la parte de datos (después del separador ':') cambiando su longitud,
+            // lo que invalida el padding de AES-CBC.
             const [ivHex, dataHex] = cifrado.split(':');
-            const cifradoAlterado = ivHex + ':' + dataHex.substring(0, 5) + 'f' + dataHex.substring(6);
+            const cifradoAlterado = ivHex + ':' + dataHex + 'ff';
 
             expect(() => {
                 decryptAES(cifradoAlterado);

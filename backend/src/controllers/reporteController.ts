@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query } from '../db';
+import { verificarOwnershipCurso } from '../utils/authorization';
 
 // ============================================================
 // Endpoint de Reporte de Rendimiento por Curso
@@ -18,6 +19,15 @@ export const rendimientoCurso = async (
             res.status(400).json({
                 success: false,
                 message: 'El parámetro id_curso debe ser un número válido',
+            });
+            return;
+        }
+
+        const idCurso = Number(id_curso);
+        if (!req.user || !(await verificarOwnershipCurso(idCurso, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para ver reportes de este curso',
             });
             return;
         }
@@ -70,7 +80,7 @@ export const rendimientoCurso = async (
             ORDER BY u.nombre_completo;
         `;
 
-        const result = await query(sql, [id_curso]);
+        const result = await query(sql, [idCurso]);
 
         if (result.rows.length === 0) {
             res.status(404).json({
@@ -142,6 +152,15 @@ export const asistenciaPorCurso = async (req: Request, res: Response): Promise<v
             return;
         }
 
+        const idCurso = Number(id_curso);
+        if (!req.user || !(await verificarOwnershipCurso(idCurso, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para ver reportes de este curso',
+            });
+            return;
+        }
+
         const result = await query(`
             SELECT
                 u.id_usuario,
@@ -157,10 +176,10 @@ export const asistenciaPorCurso = async (req: Request, res: Response): Promise<v
             JOIN usuarios u ON u.id_usuario = m.id_estudiante
             JOIN clases cl ON cl.id_curso = m.id_curso
             LEFT JOIN asistencias_alumnos a ON a.id_estudiante = u.id_usuario AND a.id_clase = cl.id_clase
-            WHERE m.id_curso = $1
-            GROUP BY u.id_usuario, u.nombre_completo, u.cedula
-            ORDER BY porcentaje_asistencia DESC
-        `, [id_curso]);
+        WHERE m.id_curso = $1
+        GROUP BY u.id_usuario, u.nombre_completo, u.cedula
+        ORDER BY porcentaje_asistencia DESC
+        `, [idCurso]);
 
         res.json({ success: true, data: result.rows });
     } catch (error: any) {
@@ -170,27 +189,35 @@ export const asistenciaPorCurso = async (req: Request, res: Response): Promise<v
 };
 
 // ============================================================
-// Reporte de Estudiantes por Género
-// GET /api/reportes/estudiantes-por-genero
+// Reporte de Asistencia por Género
+// GET /api/reportes/genero
 // ============================================================
-export const estudiantesPorGenero = async (_req: Request, res: Response): Promise<void> => {
+export const asistenciaPorGenero = async (_req: Request, res: Response): Promise<void> => {
     try {
         const result = await query(`
             SELECT
-                COALESCE(genero, 'no_especificado') AS genero,
-                COUNT(*) AS total_estudiantes,
-                ROUND(COUNT(*)::numeric / SUM(COUNT(*)) OVER () * 100, 1) AS porcentaje
-            FROM usuarios
-            WHERE rol = 'estudiante'
-            GROUP BY genero
-            ORDER BY total_estudiantes DESC
+                COALESCE(u.genero, 'no_especificado') AS genero,
+                COUNT(*) FILTER (WHERE LOWER(a.estado) = 'presente') AS presentes,
+                COUNT(*) FILTER (WHERE LOWER(a.estado) = 'ausente') AS ausentes,
+                COUNT(*) FILTER (WHERE LOWER(a.estado) = 'justificado') AS justificados,
+                COUNT(*) AS total_asistencias,
+                ROUND(
+                    COUNT(*) FILTER (WHERE LOWER(a.estado) = 'presente')::numeric
+                    / NULLIF(COUNT(*), 0) * 100,
+                    1
+                ) AS porcentaje_presentes
+            FROM asistencias_alumnos a
+            JOIN usuarios u ON u.id_usuario = a.id_estudiante
+            WHERE LOWER(u.rol) = 'estudiante'
+            GROUP BY COALESCE(u.genero, 'no_especificado')
+            ORDER BY total_asistencias DESC
         `);
 
-        const total = result.rows.reduce((acc: number, r: any) => acc + parseInt(r.total_estudiantes, 10), 0);
+        const total = result.rows.reduce((acc: number, r: any) => acc + parseInt(r.total_asistencias, 10), 0);
 
         res.json({ success: true, data: result.rows, total });
     } catch (error: any) {
-        logger.error({ err: error }, '[ReporteController] Error en estudiantes por género:');
-        res.status(500).json({ success: false, message: 'Error al generar reporte de estudiantes por género' });
+        logger.error({ err: error }, '[ReporteController] Error en asistencia por género:');
+        res.status(500).json({ success: false, message: 'Error al generar reporte de asistencia por género' });
     }
 };

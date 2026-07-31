@@ -1,9 +1,12 @@
 {
-  "name": "frontend",
-  "short_name": "frontend",
+  "name": "Cacique Tamanaco",
+  "short_name": "Cacique",
+  "description": "Plataforma Educativa Móvil Cacique Tamanaco",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",
+  "theme_color": "#0b1120",
+  "background_color": "#0b1120",
   "icons": [
     {
       "src": "icons/icon-72x72.png",

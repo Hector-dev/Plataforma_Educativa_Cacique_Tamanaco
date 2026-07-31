@@ -28,11 +28,15 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
-      # Init scripts: DDL + DML se ejecutan automáticamente
+      # Init scripts: DDL + DML + migraciones se ejecutan automáticamente
       # la primera vez que se crea la base de datos
       - ./init-scripts/01_ddl.sql:/docker-entrypoint-initdb.d/01_ddl.sql
       - ./init-scripts/02_dml.sql:/docker-entrypoint-initdb.d/02_dml.sql
-      - ./init-scripts/03_e2e_seed.sql:/docker-entrypoint-initdb.d/03_e2e_seed.sql
+      - ./init-scripts/03_migration_canvas.sql:/docker-entrypoint-initdb.d/03_migration_canvas.sql
+      - ./init-scripts/04_quiz.sql:/docker-entrypoint-initdb.d/04_quiz.sql
+      - ./init-scripts/05_e2e_seed.sql:/docker-entrypoint-initdb.d/05_e2e_seed.sql
+      - ./init-scripts/05_migracion_fecha_asistencia.sql:/docker-entrypoint-initdb.d/05_migracion_fecha_asistencia.sql
+      - ./init-scripts/06_sesiones_asistencia.sql:/docker-entrypoint-initdb.d/06_sesiones_asistencia.sql
     ports:
       - "5432:5432"
     healthcheck:

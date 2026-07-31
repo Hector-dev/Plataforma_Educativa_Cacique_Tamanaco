@@ -5,6 +5,8 @@
 // ============================================================
 
 const { chromium } = require('playwright');
+const fetch = require('node-fetch');
+const { CookieJar } = require('tough-cookie');
 const fs = require('fs');
 const path = require('path');
 const REPORT_DIR = process.env.REPORT_DIR || path.join(__dirname, 'reports');
@@ -186,6 +188,43 @@ async function disableOfflineMode(page) {
     await page.unroute('**/*');
 }
 
+/**
+ * Realiza login vía API y devuelve un CookieJar con la cookie HttpOnly.
+ */
+async function apiLogin(apiUrl, email, password) {
+    const jar = new CookieJar();
+    const resp = await fetch(`${apiUrl}/api/usuarios/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+    });
+    const data = await resp.json();
+    const setCookie = resp.headers.raw()['set-cookie'];
+    if (setCookie) {
+        for (const c of setCookie) {
+            await jar.setCookie(c, `${apiUrl}/api/usuarios/login`);
+        }
+    }
+    return { jar, data };
+}
+
+/**
+ * Convierte cookies de tough-cookie al formato de Playwright context.addCookies().
+ */
+async function getPlaywrightCookies(jar, apiUrl) {
+    const cookies = await jar.getCookies(apiUrl);
+    const url = new URL(apiUrl);
+    return cookies.map((c) => ({
+        name: c.key,
+        value: c.value,
+        domain: c.domain || url.hostname,
+        path: c.path || '/',
+        httpOnly: c.httpOnly,
+        secure: c.secure,
+        sameSite: (c.sameSite || 'Lax').toUpperCase(),
+    }));
+}
+
 module.exports = {
     initBrowser,
     evaluateWithRetry,
@@ -196,5 +235,7 @@ module.exports = {
     waitForServiceWorker,
     enableOfflineMode,
     disableOfflineMode,
+    apiLogin,
+    getPlaywrightCookies,
     REPORT_DIR,
 };

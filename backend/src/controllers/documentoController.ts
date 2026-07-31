@@ -2,6 +2,7 @@ import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query } from '../db';
 import { encryptAES } from '../utils/crypto';
+import { crearDocumentoSchema } from '../utils/validators';
 
 // ============================================================
 // Endpoint de Registro de Documentos Personales (Cifrados)
@@ -13,20 +14,20 @@ export const crearDocumento = async (
     res: Response
 ): Promise<void> => {
     try {
-        const { id_usuario, tipo_documento, numero_identificacion } = req.body;
-
-        // Validar campos obligatorios
-        if (!id_usuario || !tipo_documento || !numero_identificacion) {
+        const parsed = crearDocumentoSchema.safeParse(req.body);
+        if (!parsed.success) {
             res.status(400).json({
                 success: false,
-                message:
-                    'Los campos id_usuario, tipo_documento y numero_identificacion son obligatorios',
+                message: 'Datos inválidos',
+                errors: parsed.error.flatten(),
             });
             return;
         }
 
+        const { id_usuario, tipo_documento, numero_identificacion } = parsed.data;
+
         // Encriptar el número de identificación con AES-256-CBC
-        const numeroCifrado = encryptAES(String(numero_identificacion));
+        const numeroCifrado = encryptAES(numero_identificacion);
 
         // Insertar en la base de datos
         const result = await query(

@@ -17,7 +17,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # Copiar código fuente y configuraciones
-COPY angular.json tsconfig.json tsconfig.app.json ./
+COPY angular.json ngsw-config.json tsconfig.json tsconfig.app.json ./
 COPY src/ ./src/
 COPY public/ ./public/
 

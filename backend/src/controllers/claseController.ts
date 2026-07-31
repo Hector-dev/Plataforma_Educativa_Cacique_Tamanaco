@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query } from '../db';
+import { verificarOwnershipCurso } from '../utils/authorization';
 
 // ============================================================
 // CRUD de Clases
@@ -15,6 +16,14 @@ export const crearClase = async (req: Request, res: Response): Promise<void> => 
             res.status(400).json({
                 success: false,
                 message: 'Los campos id_curso y titulo son obligatorios',
+            });
+            return;
+        }
+
+        if (!req.user || !(await verificarOwnershipCurso(Number(id_curso), req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para crear clases en este curso',
             });
             return;
         }
@@ -50,6 +59,37 @@ export const crearClase = async (req: Request, res: Response): Promise<void> => 
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al crear la clase',
+        });
+    }
+};
+
+// GET /api/clases/mis-clases - Listar clases del docente autenticado
+export const listarClasesPorDocente = async (req: Request, res: Response): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ success: false, message: 'No autenticado' });
+            return;
+        }
+
+        const result = await query(
+            `SELECT cl.*, c.nombre AS curso_nombre
+             FROM clases cl
+             JOIN cursos c ON c.id_curso = cl.id_curso
+             WHERE c.id_docente = $1 OR $2 = true
+             ORDER BY cl.fecha DESC`,
+            [req.user.id_usuario, req.user.rol.toLowerCase() === 'admin' || req.user.rol.toLowerCase() === 'administrador']
+        );
+
+        res.json({
+            success: true,
+            data: result.rows,
+            total: result.rowCount,
+        });
+    } catch (error) {
+        logger.error({ err: error }, '[ClaseController] Error al listar clases del docente:');
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor al listar las clases',
         });
     }
 };
@@ -148,6 +188,24 @@ export const actualizarClase = async (req: Request, res: Response): Promise<void
             return;
         }
 
+        // Verificar ownership del curso actual de la clase
+        const claseActual = await query(
+            `SELECT id_curso FROM clases WHERE id_clase = $1`,
+            [id_clase]
+        );
+        if (claseActual.rows.length === 0) {
+            res.status(404).json({ success: false, message: 'Clase no encontrada' });
+            return;
+        }
+        const id_curso_actual = Number(claseActual.rows[0].id_curso);
+        if (!req.user || !(await verificarOwnershipCurso(id_curso_actual, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para actualizar esta clase',
+            });
+            return;
+        }
+
         const { id_curso, titulo, tipo_discapacidad, fecha, enlace_recurso } = req.body;
 
         const fields: string[] = [];
@@ -183,6 +241,17 @@ export const actualizarClase = async (req: Request, res: Response): Promise<void
             return;
         }
 
+        // Si se intenta mover la clase a otro curso, verificar ownership del curso destino.
+        if (id_curso !== undefined && Number(id_curso) !== id_curso_actual) {
+            if (!req.user || !(await verificarOwnershipCurso(Number(id_curso), req.user))) {
+                res.status(403).json({
+                    success: false,
+                    message: 'No tiene permiso para mover esta clase al curso indicado',
+                });
+                return;
+            }
+        }
+
         values.push(id_clase);
         const result = await query(
             `UPDATE clases
@@ -214,6 +283,66 @@ export const actualizarClase = async (req: Request, res: Response): Promise<void
     }
 };
 
+// GET /api/clases/:id/estudiantes - Listar estudiantes matriculados en el curso de la clase
+export const listarEstudiantesPorClase = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const id_clase = parseInt(id, 10);
+
+        if (isNaN(id_clase)) {
+            res.status(400).json({
+                success: false,
+                message: 'ID de clase inválido',
+            });
+            return;
+        }
+
+        // Obtener el curso de la clase y verificar ownership
+        const claseInfo = await query(
+            `SELECT cl.id_curso, c.id_docente
+             FROM clases cl
+             JOIN cursos c ON c.id_curso = cl.id_curso
+             WHERE cl.id_clase = $1`,
+            [id_clase]
+        );
+
+        if (claseInfo.rows.length === 0) {
+            res.status(404).json({ success: false, message: 'Clase no encontrada' });
+            return;
+        }
+
+        const id_curso = Number(claseInfo.rows[0].id_curso);
+        if (!req.user || !(await verificarOwnershipCurso(id_curso, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para ver los estudiantes de esta clase',
+            });
+            return;
+        }
+
+        const result = await query(
+            `SELECT u.id_usuario, u.nombre_completo, u.cedula, u.email
+             FROM matriculas m
+             JOIN usuarios u ON u.id_usuario = m.id_estudiante
+             WHERE m.id_curso = $1 AND m.estado = 'activo'
+             ORDER BY u.nombre_completo`,
+            [id_curso]
+        );
+
+        res.json({
+            success: true,
+            data: result.rows,
+            total: result.rowCount,
+        });
+    } catch (error) {
+        logger.error({ err: error }, '[ClaseController] Error al listar estudiantes por clase:');
+        res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor al listar estudiantes',
+        });
+    }
+};
+
 // DELETE /api/clases/:id - Eliminar clase
 export const eliminarClase = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -224,6 +353,23 @@ export const eliminarClase = async (req: Request, res: Response): Promise<void> 
             res.status(400).json({
                 success: false,
                 message: 'ID de clase inválido',
+            });
+            return;
+        }
+
+        // Verificar ownership del curso de la clase
+        const claseActual = await query(
+            `SELECT id_curso FROM clases WHERE id_clase = $1`,
+            [id_clase]
+        );
+        if (claseActual.rows.length === 0) {
+            res.status(404).json({ success: false, message: 'Clase no encontrada' });
+            return;
+        }
+        if (!req.user || !(await verificarOwnershipCurso(Number(claseActual.rows[0].id_curso), req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para eliminar esta clase',
             });
             return;
         }

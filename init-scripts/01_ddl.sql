@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS documentos_personales (
 --
 -- 2. `matriculas` — Tabla de negocio con ciclo de vida completo.
 --    Propósito: Registrar el proceso de matrícula con estado
---    (activa, inactiva, cancelada), fecha de inscripción y otros
+--    (activo, inactivo, cancelada), fecha de inscripción y otros
 --    metadatos administrativos.
 --
 -- Coexisten porque:
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS documentos_personales (
 --
 -- Futura consolidación: Se evaluará migrar a una sola tabla
 -- `matriculas` que absorba la FK de `curso_estudiantes` y añada
--- un índice único en (id_curso, id_estudiante) con estado 'activa'.
+-- un índice único en (id_curso, id_estudiante) con estado 'activo'.
 -- ─────────────────────────────────────────────────────────
 
 -- curso_estudiantes (link table — integridad referencial)

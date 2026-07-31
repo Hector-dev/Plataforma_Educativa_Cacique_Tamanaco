@@ -12,12 +12,10 @@ export interface UserPayload {
 
 export interface LoginResponse {
     success: boolean;
-    token: string;
     user: UserPayload;
 }
 
 export interface AuthState {
-    token: string | null;
     user: any | null;
     isAuthenticated: boolean;
 }
@@ -29,44 +27,20 @@ export class AuthService {
     private http = inject(HttpClient);
     private apiUrl = environment.apiUrl;
 
-    // ─── Token en memoria (NO localStorage — evita robo por XSS) ───
-    //
-    // TODO(auth): Migrar a cookie HttpOnly cuando el backend envíe el
-    // token como `Set-Cookie` con flags `HttpOnly; Secure; SameSite=Strict`.
-    //
-    // Plan de migración:
-    //   1. Backend: al hacer login, responder con `Set-Cookie: token=...`
-    //      en vez de devolver el token en el body JSON.
-    //   2. Backend: endpoint `POST /api/auth/refresh` que lea la cookie
-    //      y devuelva una nueva (rotación de token).
-    //   3. Backend: endpoint `POST /api/auth/logout` que borre la cookie.
-    //   4. Frontend: eliminar `_token` y `_user` de memoria. Usar
-    //      `withCredentials: true` en HttpClient para que las cookies
-    //      se envíen automáticamente.
-    //   5. Frontend: el interceptor `auth.interceptor.ts` dejará de
-    //      añadir el header `Authorization` manualmente (el navegador
-    //      envía la cookie sola).
-    //
-    // Mientras tanto, el token se almacena en memoria (no persiste
-    // entre recargas de página). Como mitigación parcial, se mantiene
-    // también en sessionStorage (se limpia al cerrar pestaña) en vez
-    // de localStorage.
-    //
-    private readonly TOKEN_KEY = 'cactam_token';
     private readonly USER_KEY = 'cactam_user';
 
-    /** Token JWT en memoria (no accesible desde JS malicioso en otra pestaña) */
-    private _token: string | null = null;
+    /** Datos de usuario en memoria. El JWT se mantiene en cookie HttpOnly del backend. */
     private _user: any | null = null;
 
     login(email: string, password: string): Observable<LoginResponse> {
         console.log('[AuthService] login() called. apiUrl:', this.apiUrl);
-        return this.http.post<LoginResponse>(`${this.apiUrl}/usuarios/login`, {
-            email,
-            password
-        }).pipe(
+        return this.http.post<LoginResponse>(
+            `${this.apiUrl}/usuarios/login`,
+            { email, password },
+            { withCredentials: true }
+        ).pipe(
             tap((res: LoginResponse) => {
-                console.log('[AuthService] tap() - setSession called. token:', !!res.token, 'user:', res.user?.nombre_completo);
+                console.log('[AuthService] tap() - setSession called. user:', res.user?.nombre_completo);
                 this.setSession(res);
             }),
             catchError((error: any) => {
@@ -78,14 +52,13 @@ export class AuthService {
 
     logout(): void {
         console.log('[AuthService] logout()');
-        this._token = null;
-        this._user = null;
-        sessionStorage.removeItem(this.TOKEN_KEY);
-        sessionStorage.removeItem(this.USER_KEY);
+        this.http.post(`${this.apiUrl}/usuarios/logout`, {}, { withCredentials: true }).subscribe();
+        this.clearSession();
     }
 
     getToken(): string | null {
-        return this._token;
+        // El token ya no vive en el frontend; vive en cookie HttpOnly.
+        return null;
     }
 
     getUser(): any | null {
@@ -93,32 +66,31 @@ export class AuthService {
     }
 
     isAuthenticated(): boolean {
-        return !!this._token;
+        return !!this._user;
     }
 
     restoreSession(): AuthState {
-        // Recuperar sesión desde sessionStorage al recargar la página
-        if (!this._token) {
-            const stored = sessionStorage.getItem(this.TOKEN_KEY);
-            if (stored) {
-                this._token = stored;
+        if (!this._user) {
+            try {
                 const userStr = sessionStorage.getItem(this.USER_KEY);
                 this._user = userStr ? JSON.parse(userStr) : null;
+            } catch {
+                this.logout();
             }
         }
         return {
-            token: this._token,
             user: this._user,
-            isAuthenticated: !!this._token
+            isAuthenticated: !!this._user
         };
     }
 
     private setSession(res: LoginResponse): void {
-        this._token = res.token;
         this._user = res.user;
-        // Respaldo mínimo en sessionStorage para sobrevivir refrescos
-        // (se limpia al cerrar la pestaña, más seguro que localStorage)
-        sessionStorage.setItem(this.TOKEN_KEY, res.token);
         sessionStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
+    }
+
+    private clearSession(): void {
+        this._user = null;
+        sessionStorage.removeItem(this.USER_KEY);
     }
 }

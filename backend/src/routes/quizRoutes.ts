@@ -6,6 +6,7 @@ import {
     responderPregunta,
     finalizarQuiz,
     obtenerResultadosQuiz,
+    obtenerResultadosPorEvaluacion,
 } from '../controllers/quizController';
 import authMiddleware, { requireRole } from '../middleware/authMiddleware';
 
@@ -16,6 +17,7 @@ router.use(authMiddleware);
 const soloDocentes = requireRole('docente', 'admin');
 router.get('/evaluacion/:id', obtenerQuizPorEvaluacion);
 router.put('/evaluacion/:id', soloDocentes, guardarQuiz);
+router.get('/evaluacion/:id/resultados', soloDocentes, obtenerResultadosPorEvaluacion);
 router.get('/:id/resultados', soloDocentes, obtenerResultadosQuiz);
 
 // Estudiante: tomar quiz

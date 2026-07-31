@@ -1,6 +1,12 @@
 import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query, getClient } from '../db';
+import {
+    esDocenteOAdmin,
+    verificarOwnershipBatchClases,
+    verificarOwnershipBatchEvaluaciones,
+} from '../utils/authorization';
+import { syncPayloadSchema } from '../utils/validators';
 
 // ============================================================
 // Endpoint de Sincronización Masiva (Offline-First)
@@ -8,6 +14,7 @@ import { query, getClient } from '../db';
 // ============================================================
 
 interface AsistenciaPayload {
+    id_sesion: number;
     id_clase: number;
     id_estudiante: number;
     estado: string;
@@ -26,16 +33,18 @@ interface SyncPayload {
 }
 
 export const syncData = async (req: Request, res: Response): Promise<void> => {
-    const { asistencias = [], calificaciones = [] } = req.body as SyncPayload;
-
-    // Validar que al menos haya un array con datos
-    if (!Array.isArray(asistencias) || !Array.isArray(calificaciones)) {
+    // Validar payload completo con Zod (tipos, rangos y estados permitidos).
+    const parsed = syncPayloadSchema.safeParse(req.body);
+    if (!parsed.success) {
         res.status(400).json({
             success: false,
-            message: 'El payload debe contener los arrays "asistencias" y "calificaciones"',
+            message: 'Payload de sincronización inválido',
+            errors: parsed.error.flatten(),
         });
         return;
     }
+
+    const { asistencias, calificaciones } = parsed.data;
 
     if (asistencias.length === 0 && calificaciones.length === 0) {
         res.status(400).json({
@@ -43,6 +52,71 @@ export const syncData = async (req: Request, res: Response): Promise<void> => {
             message: 'Debe enviar al menos un registro de asistencia o calificación para sincronizar',
         });
         return;
+    }
+
+    // Validar rol: solo docentes y administradores pueden sincronizar asistencias/calificaciones.
+    if (!req.user || !esDocenteOAdmin(req.user.rol)) {
+        res.status(403).json({
+            success: false,
+            message: 'Acceso denegado. Solo docentes y administradores pueden sincronizar asistencias y calificaciones.',
+        });
+        return;
+    }
+
+    // Verificar ownership de clases y evaluaciones incluidas en el payload.
+    const idsClase = asistencias.map((a) => a.id_clase);
+    const idsSesion = asistencias.map((a) => a.id_sesion);
+    const idsEvaluacion = calificaciones.map((c) => c.id_evaluacion);
+    const [clasesAutorizadas, evaluacionesAutorizadas] = await Promise.all([
+        verificarOwnershipBatchClases(idsClase, req.user),
+        verificarOwnershipBatchEvaluaciones(idsEvaluacion, req.user),
+    ]);
+    if (!clasesAutorizadas || !evaluacionesAutorizadas) {
+        res.status(403).json({
+            success: false,
+            message: 'Acceso denegado. No tiene permiso para sincronizar datos de clases o evaluaciones ajenas.',
+        });
+        return;
+    }
+
+    // Verificar que las sesiones existan, estén abiertas y coincidan con las clases indicadas.
+    if (asistencias.length > 0) {
+        const sesionesResult = await query(
+            `SELECT id_sesion, id_clase, estado FROM sesiones_asistencia WHERE id_sesion = ANY($1)`,
+            [idsSesion]
+        );
+        const sesionesMap = new Map<number, { id_clase: number; estado: string }>();
+        for (const row of sesionesResult.rows) {
+            sesionesMap.set(Number(row.id_sesion), {
+                id_clase: Number(row.id_clase),
+                estado: row.estado,
+            });
+        }
+
+        for (const item of asistencias) {
+            const sesion = sesionesMap.get(item.id_sesion);
+            if (!sesion) {
+                res.status(400).json({
+                    success: false,
+                    message: `La sesión ${item.id_sesion} no existe`,
+                });
+                return;
+            }
+            if (sesion.estado !== 'abierta') {
+                res.status(409).json({
+                    success: false,
+                    message: `La sesión ${item.id_sesion} está cerrada`,
+                });
+                return;
+            }
+            if (sesion.id_clase !== item.id_clase) {
+                res.status(400).json({
+                    success: false,
+                    message: `La sesión ${item.id_sesion} no corresponde a la clase ${item.id_clase}`,
+                });
+                return;
+            }
+        }
     }
 
     const client = await getClient();
@@ -59,22 +133,23 @@ export const syncData = async (req: Request, res: Response): Promise<void> => {
         if (asistencias.length > 0) {
             const asistenciaQuery = `
                 INSERT INTO asistencias_alumnos
-                    (id_clase, id_estudiante, estado, fecha_registro)
-                VALUES ($1, $2, $3, CURRENT_DATE)
-                ON CONFLICT (id_clase, id_estudiante)
+                    (id_sesion, id_clase, id_estudiante, estado, fecha_registro)
+                VALUES ($1, $2, $3, $4, CURRENT_DATE)
+                ON CONFLICT (id_sesion, id_estudiante)
                 DO UPDATE SET
                     estado = EXCLUDED.estado,
                     fecha_registro = CURRENT_DATE
             `;
 
             for (const item of asistencias) {
-                if (!item.id_clase || !item.id_estudiante || !item.estado) {
+                if (!item.id_sesion || !item.id_clase || !item.id_estudiante || !item.estado) {
                     throw new Error(
-                        `Asistencia inválida: los campos id_clase, id_estudiante y estado son obligatorios`
+                        `Asistencia inválida: los campos id_sesion, id_clase, id_estudiante y estado son obligatorios`
                     );
                 }
 
                 await client.query(asistenciaQuery, [
+                    item.id_sesion,
                     item.id_clase,
                     item.id_estudiante,
                     item.estado,

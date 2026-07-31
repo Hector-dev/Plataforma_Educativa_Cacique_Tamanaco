@@ -8,6 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="description" content="Plataforma Educativa Móvil Cacique Tamanaco" />
   <meta name="theme-color" content="#0b1120" />
+  <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" type="image/svg+xml"
     href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📘</text></svg>" />
   <noscript>
@@ -24,24 +25,6 @@
     </style>
     <p>⚠️ JavaScript es requerido para esta aplicación.</p>
   </noscript>
-  <script>
-    // Unregister any stale Service Worker to prevent caching old builds
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function (registrations) {
-        registrations.forEach(function (reg) {
-          reg.unregister().then(function (success) {
-            if (success) console.log('[Cacique] Service Worker unregistered successfully');
-          });
-        });
-        // Clear caches
-        caches.keys().then(function (names) {
-          names.forEach(function (name) {
-            caches.delete(name);
-          });
-        });
-      });
-    }
-  </script>
 </head>
 
 <body>

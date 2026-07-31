@@ -158,6 +158,11 @@ export class QuizPlayerComponent implements OnInit, OnDestroy {
   }
 
   volver(): void {
-    this.router.navigate(['/']);
+    const cursoId = this.route.snapshot.queryParamMap.get('curso');
+    if (cursoId) {
+      this.router.navigate(['/cursos', cursoId, 'estudiar']);
+    } else {
+      this.router.navigate(['/dashboard']);
+    }
   }
 }

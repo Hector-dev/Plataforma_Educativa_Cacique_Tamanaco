@@ -3,7 +3,8 @@ import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { query } from '../db';
-import authMiddleware from '../middleware/authMiddleware';
+import authMiddleware, { requireRole } from '../middleware/authMiddleware';
+import { adminOPropioUsuario } from '../utils/authorization';
 import {
     crearUsuario,
     listarUsuarios,
@@ -13,6 +14,7 @@ import {
 } from '../controllers/usuarioController';
 
 const router = Router();
+const soloAdmin = requireRole('admin');
 
 // ─── Rate Limiter para /login (anti fuerza bruta) ────────
 const loginLimiter = rateLimit({
@@ -64,9 +66,17 @@ router.post('/login', loginLimiter, async (req, res) => {
             { expiresIn: '8h' }
         );
 
+        const isProd = process.env.NODE_ENV === 'production';
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: isProd,
+            sameSite: isProd ? 'strict' : 'lax',
+            maxAge: 8 * 60 * 60 * 1000, // 8 horas
+            signed: false,
+        });
+
         res.json({
             success: true,
-            token,
             user: {
                 id_usuario: user.id_usuario,
                 nombre_completo: user.nombre_completo,
@@ -80,12 +90,24 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 });
 
-// ─── CRUD protegido con autenticación JWT ────────────────
+// ─── Logout ─────────────────────────────────────────────────
+router.post('/logout', (req, res) => {
+    res.clearCookie('token');
+    res.json({ success: true, message: 'Sesión cerrada exitosamente' });
+});
+
+// ─── CRUD protegido con autenticación JWT y autorización por rol ────────────────
 router.use(authMiddleware);
-router.post('/', crearUsuario);
-router.get('/', listarUsuarios);
-router.get('/:id', obtenerUsuario);
-router.put('/:id', actualizarUsuario);
-router.delete('/:id', eliminarUsuario);
+
+// Solo administradores pueden crear usuarios y listar todos
+router.post('/', soloAdmin, crearUsuario);
+router.get('/', soloAdmin, listarUsuarios);
+
+// Cada usuario puede ver/editar su propio perfil; admin puede hacerlo sobre cualquiera
+router.get('/:id', adminOPropioUsuario, obtenerUsuario);
+router.put('/:id', adminOPropioUsuario, actualizarUsuario);
+
+// Solo administradores pueden eliminar usuarios
+router.delete('/:id', soloAdmin, eliminarUsuario);
 
 export default router;

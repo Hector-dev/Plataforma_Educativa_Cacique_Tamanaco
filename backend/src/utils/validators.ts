@@ -77,16 +77,27 @@ export const crearEvaluacionSchema = z.object({
     porcentaje: z.number().min(0).max(100),
 });
 
+export const guardarCalificacionSchema = z.object({
+    id_estudiante: z.number().int().positive(),
+    nota_preliminar: z.number().min(0).max(20).optional().nullable(),
+    nota_definitiva: z.number().min(0).max(20).optional().nullable(),
+    observaciones: z.string().max(1000).optional().nullable(),
+});
+
 // ─── Asistencia ────────────────────────────────────────
 
 export const registrarAsistenciaSchema = z.object({
-    id_clase: z.number().int().positive(),
     id_estudiante: z.number().int().positive(),
     estado: z.enum(['presente', 'ausente', 'justificado']),
 });
 
+export const syncAsistenciaSchema = registrarAsistenciaSchema.extend({
+    id_sesion: z.number().int().positive(),
+    id_clase: z.number().int().positive(),
+});
+
 export const syncPayloadSchema = z.object({
-    asistencias: z.array(registrarAsistenciaSchema).default([]),
+    asistencias: z.array(syncAsistenciaSchema).default([]),
     calificaciones: z.array(z.object({
         id_evaluacion: z.number().int().positive(),
         id_estudiante: z.number().int().positive(),

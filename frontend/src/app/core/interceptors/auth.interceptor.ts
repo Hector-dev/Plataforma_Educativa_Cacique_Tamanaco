@@ -5,14 +5,8 @@ import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  // Never attach token to login requests
-  if (req.url.includes('/usuarios/login')) {
-    return next(req);
-  }
-
   const authService = inject(AuthService);
   const router = inject(Router);
-  const token = authService.getToken();
 
   const handle401 = () => {
     authService.logout();
@@ -20,23 +14,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     router.navigate(['/'], { queryParams: { returnUrl } });
   };
 
-  if (token) {
-    const cloned = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-    return next(cloned).pipe(
-      catchError((error: HttpErrorResponse) => {
-        if (error.status === 401) {
-          handle401();
-        }
-        return throwError(() => error);
-      })
-    );
-  }
+  // El JWT viaja automáticamente en cookie HttpOnly cuando withCredentials=true.
+  // No se añade header Authorization manualmente.
+  const cloned = req.clone({
+    withCredentials: true,
+  });
 
-  return next(req).pipe(
+  return next(cloned).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
         handle401();

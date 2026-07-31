@@ -13,8 +13,8 @@ WHERE NOT EXISTS (
 );
 
 -- Clase dentro del curso
-INSERT INTO clases (id_curso, titulo, descripcion, fecha)
-SELECT c.id_curso, 'Clase 1 — Introducción', 'Primera clase del curso E2E', CURRENT_DATE
+INSERT INTO clases (id_curso, titulo, fecha)
+SELECT c.id_curso, 'Clase 1 — Introducción', CURRENT_DATE
 FROM cursos c
 WHERE c.nombre = 'Curso E2E Test'
   AND NOT EXISTS (

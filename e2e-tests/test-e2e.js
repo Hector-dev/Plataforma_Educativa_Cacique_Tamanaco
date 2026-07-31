@@ -21,11 +21,15 @@ const {
     waitForServiceWorker,
     enableOfflineMode,
     disableOfflineMode,
+    apiLogin,
+    getPlaywrightCookies,
 } = require('./test-e2e-utils');
 
 // ─── Configuración ────────────────────────────────────────
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://frontend:80';
 const API_URL = process.env.API_URL || 'http://backend:3000';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@admin.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 const TIMEOUT = 30000;
 
 // ─── Inicio ────────────────────────────────────────────────
@@ -47,7 +51,7 @@ const TIMEOUT = 30000;
 
     try {
         // ───── 1. Inicializar navegador ─────────────────
-        console.log('\n[1/7] Inicializando navegador headless...');
+        console.log('\n[1/8] Inicializando navegador headless...');
         const initResult = await initBrowser(true);
         browser = initResult.browser;
         context = initResult.context;
@@ -55,8 +59,19 @@ const TIMEOUT = 30000;
         console.log('  ✓ Navegador iniciado');
         appendReportLine('[OK] Navegador Chromium headless iniciado');
 
-        // ───── 2. Abrir la PWA ──────────────────────────
-        console.log('\n[2/7] Abriendo PWA...');
+        // ───── 2. Autenticar vía API con cookies HttpOnly ─
+        console.log('\n[2/8] Autenticando con backend...');
+        const { jar, data: loginData } = await apiLogin(API_URL, ADMIN_EMAIL, ADMIN_PASSWORD);
+        if (!loginData.success) {
+            throw new Error(`Login falló: ${loginData.message}`);
+        }
+        const pwCookies = await getPlaywrightCookies(jar, API_URL);
+        await context.addCookies(pwCookies);
+        console.log('  ✓ Cookie HttpOnly configurada');
+        appendReportLine('[OK] Login API + cookie HttpOnly');
+
+        // ───── 3. Abrir la PWA ──────────────────────────
+        console.log('\n[3/8] Abriendo PWA...');
         await page.goto(FRONTEND_URL, {
             waitUntil: 'networkidle',
             timeout: TIMEOUT,
@@ -71,8 +86,8 @@ const TIMEOUT = 30000;
 
         recordResult('Carga de PWA', true, `Título: "${pageTitle}"`);
 
-        // ───── 3. Verificar Service Worker ──────────────
-        console.log('\n[3/7] Verificando Service Worker...');
+        // ───── 4. Verificar Service Worker ──────────────
+        console.log('\n[4/8] Verificando Service Worker...');
         let swInfo;
         try {
             swInfo = await waitForServiceWorker(context, page);
@@ -83,8 +98,8 @@ const TIMEOUT = 30000;
             throw err; // Si no hay SW, el resto de la prueba no tiene sentido
         }
 
-        // ───── 4. Simular desconexión de red ────────────
-        console.log('\n[4/7] Simulando desconexión de red (offline)...');
+        // ───── 5. Simular desconexión de red ────────────
+        console.log('\n[5/8] Simulando desconexión de red (offline)...');
         await enableOfflineMode(page);
         console.log('  ✓ Red desconectada vía route interception');
         appendReportLine('[INFO] Red desconectada');
@@ -96,8 +111,8 @@ const TIMEOUT = 30000;
 
         recordResult('Desconexión de red simulada', true);
 
-        // ───── 5. Simular registro de asistencia offline ──
-        console.log('\n[5/7] Simulando registro de asistencia offline en IndexedDB...');
+        // ───── 6. Simular registro de asistencia offline ──
+        console.log('\n[6/8] Simulando registro de asistencia offline en IndexedDB...');
 
         // Inyectar y ejecutar el guardado offline directamente en IndexedDB
         // usando el mismo esquema que OfflineStorageService
@@ -171,8 +186,8 @@ const TIMEOUT = 30000;
 
         await sleep(500);
 
-        // ───── 6. Validar que el dato persiste en IndexedDB ──
-        console.log('\n[6/7] Validando persistencia en IndexedDB...');
+        // ───── 7. Validar que el dato persiste en IndexedDB ──
+        console.log('\n[7/8] Validando persistencia en IndexedDB...');
 
         const validationResult = await page.evaluate(async () => {
             return new Promise((resolve) => {
@@ -227,8 +242,8 @@ const TIMEOUT = 30000;
 
         await takeScreenshot(page, '03-offline-data-validated');
 
-        // ───── 7. Restaurar conexión y validar sincronización ──
-        console.log('\n[7/7] Restaurando conexión y validando sincronización...');
+        // ───── 8. Restaurar conexión y validar sincronización ──
+        console.log('\n[8/8] Restaurando conexión y validando sincronización...');
 
         // Desbloquear las rutas de red
         await disableOfflineMode(page);

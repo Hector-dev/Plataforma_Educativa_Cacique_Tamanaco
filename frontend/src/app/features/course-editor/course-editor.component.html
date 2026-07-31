@@ -45,8 +45,8 @@
         {{ isDark() ? '☀️' : '🌙' }}
       </button>
       <span class="version">v{{ doc.version }}</span>
-      <button class="btn-outline" [routerLink]="['/cursos', doc.id.replace('c_','')]">
-        👁 Vista previa
+      <button class="btn-outline" routerLink="/cursos" title="Volver al listado de cursos">
+        ← Cursos
       </button>
       <button class="btn-primary" (click)="guardar()" [disabled]="guardando() || !tieneCambios()">
         {{ guardando() ? 'Guardando...' : '💾 Guardar' }}

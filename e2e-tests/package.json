@@ -8,6 +8,8 @@
     "test:canvas": "node test-e2e-canvas-editor.js"
   },
   "dependencies": {
-    "playwright": "^1.48.0"
+    "node-fetch": "^2.7.0",
+    "playwright": "^1.48.0",
+    "tough-cookie": "^6.0.2"
   }
 }

@@ -1,9 +1,9 @@
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- TOASTS                                               -->
 <!-- ═══════════════════════════════════════════════════════ -->
-@if (token) {
+@if (toasts().length > 0) {
 <div class="toast-container" aria-live="polite">
-  @for (toast of toasts; track toast.id) {
+  @for (toast of toasts(); track toast.id) {
   <div class="toast" [class]="'toast toast-' + toast.type" role="alert">
     <span class="toast-icon">{{ toast.icon }}</span>
     <span class="toast-msg">{{ toast.message }}</span>
@@ -23,25 +23,14 @@
 <!-- AUTHENTICATED LAYOUT — sidebar + content              -->
 <!-- ═══════════════════════════════════════════════════════ -->
 @if (!isLoginRoute && !isStandaloneRoute) {
-  <header class="mobile-topbar">
-    <button class="hamburger" (click)="mobileMenuOpen = !mobileMenuOpen" aria-label="Menú">☰</button>
-    <span class="mobile-brand">📘 Cacique Tamanaco</span>
-    <button class="theme-toggle-mobile" (click)="toggleTheme()"
-            [attr.aria-label]="isDark ? 'Modo claro' : 'Modo oscuro'">
-      {{ isDark ? '☀️' : '🌙' }}
-    </button>
-  </header>
-
   <button class="theme-toggle theme-toggle-desktop" (click)="toggleTheme()"
           [attr.aria-label]="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
     {{ isDark ? '☀️' : '🌙' }}
   </button>
 
   <div class="app-container">
-    <div class="sidebar-overlay" [class.visible]="mobileMenuOpen" (click)="mobileMenuOpen = false" aria-hidden="true"></div>
-
-    <aside class="sidebar" [class.collapsed]="sidebarCollapsed && !mobileMenuOpen"
-           [class.mobile-open]="mobileMenuOpen" role="navigation" aria-label="Navegación principal">
+    <aside class="sidebar" [class.collapsed]="sidebarCollapsed"
+           role="navigation" aria-label="Navegación principal">
       <div class="sidebar-header" (click)="sidebarCollapsed = !sidebarCollapsed"
            (keydown.enter)="sidebarCollapsed = !sidebarCollapsed" tabindex="0" role="button"
            [attr.aria-label]="sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'">
@@ -50,7 +39,7 @@
       </div>
       <nav class="sidebar-nav">
         @for (item of filteredMenuItems; track item.path) {
-        <a [routerLink]="item.path" (click)="mobileMenuOpen = false"
+        <a [routerLink]="item.path"
            routerLinkActive="active" [routerLinkActiveOptions]="{exact: item.path === '/dashboard'}"
            class="nav-item" tabindex="0" role="menuitem">
           <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>

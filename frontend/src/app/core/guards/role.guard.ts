@@ -8,13 +8,17 @@ import { AuthService } from '../services/auth.service';
  * Uso: `canActivate: [roleGuard('admin', 'docente')]`
  */
 export function roleGuard(...allowedRoles: string[]): CanActivateFn {
-  return (_route, state) => {
+  return async (_route, state) => {
     const authService = inject(AuthService);
     const router = inject(Router);
 
+    // Restaurar sesión desde sessionStorage antes de validar (sobrevive a recargas de página)
+    authService.restoreSession();
+
     const user = authService.getUser();
     if (!user) {
-      router.navigate(['/']);
+      const returnUrl = state.url !== '/' ? state.url : '/dashboard';
+      router.navigate(['/'], { queryParams: { returnUrl } });
       return false;
     }
 

@@ -1,6 +1,7 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, provideZoneChangeDetection, isDevMode } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
+import { provideServiceWorker } from '@angular/service-worker';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
@@ -10,11 +11,16 @@ import { UserManagementComponent } from './features/user-management/user-managem
 import { AttendanceComponent } from './features/attendance/attendance.component';
 import { ReportsComponent } from './features/reports/reports.component';
 import { CoursesComponent } from './features/courses/courses.component';
+import { MyGradesComponent } from './features/my-grades/my-grades.component';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideHttpClient(withInterceptors([authInterceptor])),
+    provideServiceWorker('ngsw-worker.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000',
+    }),
     provideRouter([
       // ─── Público ────────────────────────────────────
       { path: '', component: LoginComponent },
@@ -25,8 +31,9 @@ export const appConfig: ApplicationConfig = {
       // ─── Admin / Docente ────────────────────────────
       { path: 'usuarios', component: UserManagementComponent, canActivate: [authGuard, roleGuard('admin', 'administrador')] },
       { path: 'asistencia', component: AttendanceComponent, canActivate: [authGuard, roleGuard('admin', 'docente', 'administrador')] },
-      { path: 'reportes', component: ReportsComponent, canActivate: [authGuard] },
+      { path: 'reportes', component: ReportsComponent, canActivate: [authGuard, roleGuard('admin', 'docente', 'administrador')] },
       { path: 'cursos', component: CoursesComponent, canActivate: [authGuard] },
+      { path: 'mis-notas', component: MyGradesComponent, canActivate: [authGuard, roleGuard('estudiante')] },
 
       // ─── Lazy-loaded features ───────────────────────
       {
@@ -34,6 +41,22 @@ export const appConfig: ApplicationConfig = {
         loadComponent: () =>
           import('./features/course-editor/course-editor.component').then(
             (m) => m.CourseEditorComponent
+          ),
+        canActivate: [authGuard],
+      },
+      {
+        path: 'cursos/:id/preview',
+        loadComponent: () =>
+          import('./features/course-preview/course-preview.component').then(
+            (m) => m.CoursePreviewComponent
+          ),
+        canActivate: [authGuard],
+      },
+      {
+        path: 'cursos/:id/estudiar',
+        loadComponent: () =>
+          import('./features/course-preview/course-preview.component').then(
+            (m) => m.CoursePreviewComponent
           ),
         canActivate: [authGuard],
       },

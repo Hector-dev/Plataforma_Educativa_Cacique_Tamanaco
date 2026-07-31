@@ -116,7 +116,7 @@ export class ReportsComponent implements OnInit {
     let url = '';
     switch (tipo) {
       case 'asistencia-general': url = `${this.apiUrl}/reportes/asistencia-general`; break;
-      case 'asistencia-curso': url = `${this.apiUrl}/reportes/asistencia-curso/${idCurso}`; break;
+      case 'asistencia-curso': url = `${this.apiUrl}/reportes/asistencia-por-curso/${idCurso}`; break;
       case 'rendimiento-curso': url = `${this.apiUrl}/reportes/rendimiento/${idCurso}`; break;
       case 'genero': url = `${this.apiUrl}/reportes/genero`; break;
     }

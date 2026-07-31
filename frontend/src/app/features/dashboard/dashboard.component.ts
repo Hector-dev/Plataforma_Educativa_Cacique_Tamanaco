@@ -2,7 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/services/auth.service';
 import { Chart, registerables } from 'chart.js';
@@ -11,7 +11,7 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <!-- Admin/Docente Dashboard -->
     @if (!isEstudiante) {
@@ -37,6 +37,23 @@ Chart.register(...registerables);
         <div class="chart-wrapper">
           <canvas id="asistenciaChart"></canvas>
         </div>
+      </div>
+
+      <div class="section">
+        <h2>Cursos</h2>
+        @if (cursos.length > 0) {
+          <div class="courses-list">
+            @for (curso of cursos; track curso.id_curso) {
+              <div class="course-card">
+                <h3>{{ curso.nombre }}</h3>
+                <p>{{ curso.descripcion || 'Sin descripción' }}</p>
+                <span class="meta">Docente: {{ curso.docente_nombre || 'Sin asignar' }}</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="info-text">No hay cursos registrados.</p>
+        }
       </div>
     }
 
@@ -69,11 +86,11 @@ Chart.register(...registerables);
       @if (misCursos.length > 0) {
         <div class="courses-list">
           @for (curso of misCursos; track curso.id_curso) {
-            <div class="course-card">
+            <a [routerLink]="['/cursos', curso.id_curso, 'estudiar']" class="course-card course-link">
               <h3>{{ curso.nombre }}</h3>
               <p>{{ curso.docente_nombre || 'Sin docente' }}</p>
               <span class="badge">{{ curso.estado_matricula }}</span>
-            </div>
+            </a>
           }
         </div>
       }
@@ -90,14 +107,20 @@ Chart.register(...registerables);
     .kpi-info { display: flex; flex-direction: column; }
     .kpi-value { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
     .kpi-label { font-size: 0.85rem; color: var(--text-secondary); }
-    .chart-container { background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 12px; padding: 1.5rem; }
+    .chart-container { background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
     .chart-container h2 { font-size: 1.1rem; margin-bottom: 1rem; }
     .chart-wrapper { height: 300px; }
+    .section { background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 12px; padding: 1.5rem; }
+    .section h2 { font-size: 1.1rem; margin-bottom: 1rem; }
     .courses-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
     .course-card { background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 12px; padding: 1.25rem; }
-    .course-card h3 { font-size: 1.1rem; color: var(--text-primary); }
-    .course-card p { color: var(--text-secondary); font-size: 0.9rem; }
+    .course-card.course-link { display: block; text-decoration: none; transition: border-color var(--transition-fast), transform var(--transition-fast); cursor: pointer; }
+    .course-card.course-link:hover { border-color: var(--primary-gold); transform: translateY(-2px); }
+    .course-card h3 { font-size: 1.1rem; color: var(--text-primary); margin-bottom: 0.25rem; }
+    .course-card p { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem; }
+    .course-card .meta { color: var(--text-muted); font-size: 0.8rem; }
     .badge { display: inline-block; background: var(--accent); color: #000; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; margin-top: 0.5rem; }
+    .info-text { color: var(--text-secondary); font-size: 0.95rem; }
   `]
 })
 export class DashboardComponent implements OnInit {
@@ -111,6 +134,7 @@ export class DashboardComponent implements OnInit {
 
   kpiCards: any[] = [];
   chart: Chart | null = null;
+  cursos: any[] = [];
 
   misCursos: any[] = [];
   miAsistencia: any = null;
@@ -135,7 +159,7 @@ export class DashboardComponent implements OnInit {
     } else {
       this.http.get<any>(`${this.apiUrl}/cursos`).subscribe({
         next: (cursosRes) => {
-          const cursos = cursosRes.data || cursosRes;
+          this.cursos = cursosRes.data || cursosRes || [];
           this.http.get<any>(`${this.apiUrl}/usuarios`).subscribe({
             next: (usuariosRes) => {
               const usuarios = usuariosRes.data || usuariosRes;
@@ -143,7 +167,7 @@ export class DashboardComponent implements OnInit {
               this.kpiCards = [
                 { label: 'Usuarios', value: usuarios.length, icon: '👥' },
                 { label: 'Estudiantes', value: estudiantes, icon: '🎓' },
-                { label: 'Cursos', value: cursos.length, icon: '📚' },
+                { label: 'Cursos', value: this.cursos.length, icon: '📚' },
                 { label: 'Conectado', value: '✅', icon: '🌐' },
               ];
               setTimeout(() => this.buildChart(), 200);

@@ -205,11 +205,11 @@ Docker dedicado, aislado del host.
 ├── init-scripts/               # SQL auto-ejecutables (DDL + DML + migrations)
 │   ├── 01_ddl.sql              # Esquema de tablas
 │   ├── 02_dml.sql              # Usuario admin seed
-│   ├── 03_e2e_seed.sql         # Datos demo para pruebas E2E
 │   ├── 03_migration_canvas.sql # Migración editor canvas
 │   ├── 04_quiz.sql             # Sistema de quizzes
-│   ├── 04_seed_demo_completo.sql # Curso demo completo (todos los tipos)
-│   └── 05_migracion_fecha_asistencia.sql
+│   ├── 05_e2e_seed.sql         # Datos demo para pruebas E2E
+│   ├── 05_migracion_fecha_asistencia.sql
+│   └── 06_sesiones_asistencia.sql # Migración asistencia por sesiones diarias
 │
 ├── e2e-tests/                  # Tests end-to-end (Playwright)
 ├── offline-package/            # Paquete para despliegue sin internet

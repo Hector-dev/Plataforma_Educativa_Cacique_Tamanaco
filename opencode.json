@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "code-orchestrator",
+  "agent": {
+    "code-orchestrator": {
+      "mode": "primary",
+      "description": "Orquesta iteraciones entre programador y QA hasta que el código esté listo.",
+      "model": "anthropic/claude-sonnet-4-6"
+    },
+    "programmer": {
+      "mode": "subagent",
+      "description": "Escribe y modifica código siguiendo especificaciones del proyecto.",
+      "model": "anthropic/claude-sonnet-4-6"
+    },
+    "qa": {
+      "mode": "subagent",
+      "description": "Revisa calidad, pruebas, edge cases y robustez del código generado.",
+      "model": "anthropic/claude-sonnet-4-6"
+    }
+  }
+}

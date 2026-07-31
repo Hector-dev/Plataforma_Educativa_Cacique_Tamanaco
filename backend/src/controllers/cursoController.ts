@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query } from '../db';
+import { esAdmin, verificarOwnershipCurso } from '../utils/authorization';
 
 // ============================================================
 // CRUD de Cursos
@@ -9,7 +10,7 @@ import { query } from '../db';
 // POST /api/cursos - Crear curso
 export const crearCurso = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { id_docente, nombre, descripcion } = req.body;
+        let { id_docente, nombre, descripcion } = req.body;
 
         if (!id_docente || !nombre) {
             res.status(400).json({
@@ -17,6 +18,11 @@ export const crearCurso = async (req: Request, res: Response): Promise<void> => 
                 message: 'Los campos id_docente y nombre son obligatorios',
             });
             return;
+        }
+
+        // Un docente solo puede crear cursos asignados a sí mismo.
+        if (req.user && !esAdmin(req.user.rol)) {
+            id_docente = req.user.id_usuario;
         }
 
         const result = await query(
@@ -97,7 +103,7 @@ export const listarMisCursos = async (req: Request, res: Response): Promise<void
              FROM cursos c
              JOIN matriculas m ON m.id_curso = c.id_curso
              LEFT JOIN usuarios u ON c.id_docente = u.id_usuario
-             WHERE m.id_estudiante = $1 AND m.estado = 'activa'
+             WHERE m.id_estudiante = $1 AND m.estado = 'activo'
              ORDER BY m.fecha_inscripcion DESC`,
             [idEstudiante]
         );
@@ -165,7 +171,24 @@ export const actualizarCurso = async (req: Request, res: Response): Promise<void
             return;
         }
 
+        if (!req.user || !(await verificarOwnershipCurso(id_curso, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para actualizar este curso',
+            });
+            return;
+        }
+
         const { id_docente, nombre, descripcion } = req.body;
+
+        // Solo los administradores pueden reasignar el docente de un curso.
+        if (id_docente !== undefined && !esAdmin(req.user.rol)) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para cambiar el docente del curso',
+            });
+            return;
+        }
 
         const fields: string[] = [];
         const values: any[] = [];
@@ -237,6 +260,14 @@ export const eliminarCurso = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
+        if (!req.user || !(await verificarOwnershipCurso(id_curso, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para eliminar este curso',
+            });
+            return;
+        }
+
         const result = await query(
             `DELETE FROM cursos WHERE id_curso = $1
              RETURNING id_curso, nombre`,
@@ -279,6 +310,15 @@ export const matricularEstudiante = async (req: Request, res: Response): Promise
 
         if (!id_estudiante) {
             res.status(400).json({ success: false, message: 'id_estudiante es requerido' });
+            return;
+        }
+
+        // Verificar ownership del curso
+        if (!req.user || !(await verificarOwnershipCurso(id_curso, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para matricular estudiantes en este curso',
+            });
             return;
         }
 
@@ -335,6 +375,42 @@ export const matricularEstudiante = async (req: Request, res: Response): Promise
 };
 
 // GET /api/cursos/:id/matriculados - Listar estudiantes matriculados en un curso
+// GET /api/cursos/:id/estudiantes-disponibles - Listar estudiantes no matriculados en un curso
+export const listarEstudiantesDisponibles = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const id_curso = parseInt(id, 10);
+        if (isNaN(id_curso)) {
+            res.status(400).json({ success: false, message: 'ID de curso inválido' });
+            return;
+        }
+
+        if (!req.user || !(await verificarOwnershipCurso(id_curso, req.user))) {
+            res.status(403).json({ success: false, message: 'No tiene permiso para listar estudiantes de este curso' });
+            return;
+        }
+
+        const result = await query(
+            `SELECT u.id_usuario, u.nombre_completo, u.cedula, u.email
+             FROM usuarios u
+             WHERE LOWER(u.rol) = 'estudiante'
+               AND u.id_usuario NOT IN (
+                   SELECT m.id_estudiante
+                   FROM matriculas m
+                   WHERE m.id_curso = $1 AND m.estado = 'activo'
+               )
+             ORDER BY u.nombre_completo`,
+            [id_curso]
+        );
+
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        logger.error({ err: error }, '[CursoController] Error al listar estudiantes disponibles:');
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
+// GET /api/cursos/:id/matriculados - Listar estudiantes matriculados en un curso
 export const listarMatriculados = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
@@ -369,6 +445,14 @@ export const retirarEstudiante = async (req: Request, res: Response): Promise<vo
 
         if (isNaN(id_curso) || isNaN(id_estudiante)) {
             res.status(400).json({ success: false, message: 'ID de curso o estudiante inválido' });
+            return;
+        }
+
+        if (!req.user || !(await verificarOwnershipCurso(id_curso, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para retirar estudiantes de este curso',
+            });
             return;
         }
 
@@ -605,7 +689,14 @@ export const guardarDocumentoCurso = async (req: Request, res: Response): Promis
 
         const doc = req.body;
 
-        if (!doc || !doc.modulos === undefined) {
+        if (!req.user) {
+            await client.query('ROLLBACK');
+            res.status(401).json({ success: false, message: 'No autenticado' });
+            return;
+        }
+
+        if (!doc || doc.modulos === undefined || doc.leccionesSueltas === undefined) {
+            await client.query('ROLLBACK');
             res.status(400).json({ success: false, message: 'Documento inválido. Se requiere modulos y leccionesSueltas.' });
             return;
         }
@@ -627,18 +718,16 @@ export const guardarDocumentoCurso = async (req: Request, res: Response): Promis
         const { id_docente: idDocenteBD, version: versionBD } = cursoActual.rows[0];
 
         // 0a. Validar ownership: solo el docente dueño o un admin pueden modificar
-        if (req.user) {
-            const userRoleNorm = req.user.rol.toLowerCase() === 'administrador' ? 'admin' : req.user.rol.toLowerCase();
-            const esAdmin = userRoleNorm === 'admin';
-            const esDueno = req.user.id_usuario === idDocenteBD;
-            if (!esAdmin && !esDueno) {
-                await client.query('ROLLBACK');
-                res.status(403).json({
-                    success: false,
-                    message: 'No tienes permiso para modificar este curso. Solo el docente asignado puede editarlo.',
-                });
-                return;
-            }
+        const userRoleNorm = (req.user.rol || '').toLowerCase() === 'administrador' ? 'admin' : (req.user.rol || '').toLowerCase();
+        const esAdmin = userRoleNorm === 'admin';
+        const esDueno = req.user.id_usuario === idDocenteBD;
+        if (!esAdmin && !esDueno) {
+            await client.query('ROLLBACK');
+            res.status(403).json({
+                success: false,
+                message: 'No tienes permiso para modificar este curso. Solo el docente asignado puede editarlo.',
+            });
+            return;
         }
 
         // 0b. Control de concurrencia optimista: verificar versión

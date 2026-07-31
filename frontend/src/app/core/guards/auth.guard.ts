@@ -4,11 +4,14 @@ import { AuthService } from '../services/auth.service';
 
 /**
  * AuthGuard — protege rutas que requieren sesión activa.
- * Si no hay token, redirige al login con returnUrl.
+ * Si no hay sesión, redirige al login con returnUrl.
  */
-export const authGuard: CanActivateFn = (_route, state) => {
+export const authGuard: CanActivateFn = async (_route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
+
+  // Restaurar sesión desde sessionStorage antes de validar (sobrevive a recargas de página)
+  authService.restoreSession();
 
   if (authService.isAuthenticated()) {
     return true;

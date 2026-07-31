@@ -9,10 +9,12 @@ import {
     matricularEstudiante,
     listarMatriculados,
     retirarEstudiante,
+    listarEstudiantesDisponibles,
     obtenerDocumentoCurso,
     guardarDocumentoCurso,
 } from '../controllers/cursoController';
 import authMiddleware, { requireRole } from '../middleware/authMiddleware';
+import { requireCursoOwner, requireCursoAccess } from '../utils/authorization';
 
 const router = Router();
 
@@ -23,8 +25,8 @@ router.use(authMiddleware);
 router.get('/', listarCursos);
 router.get('/mis-cursos', listarMisCursos);
 router.get('/:id', obtenerCurso);
-router.get('/:id/document', obtenerDocumentoCurso);
-router.get('/:id/matriculados', listarMatriculados);
+router.get('/:id/document', requireCursoAccess, obtenerDocumentoCurso);
+router.get('/:id/matriculados', requireCursoOwner, listarMatriculados);
 
 // Escritura: solo docentes y administradores
 const soloDocentes = requireRole('docente', 'admin');
@@ -35,5 +37,6 @@ router.delete('/:id/matricular/:idEstudiante', soloDocentes, retirarEstudiante);
 router.put('/:id', soloDocentes, actualizarCurso);
 router.delete('/:id', soloDocentes, eliminarCurso);
 router.put('/:id/document', soloDocentes, guardarDocumentoCurso);
+router.get('/:id/estudiantes-disponibles', soloDocentes, requireCursoOwner, listarEstudiantesDisponibles);
 
 export default router;

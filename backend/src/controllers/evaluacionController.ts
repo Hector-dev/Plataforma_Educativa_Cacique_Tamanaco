@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query } from '../db';
+import { verificarOwnershipClase, verificarOwnershipEvaluacion } from '../utils/authorization';
 
 // GET /api/evaluaciones/clase/:id_clase - Listar evaluaciones por clase
 export const listarEvaluacionesPorClase = async (req: Request, res: Response): Promise<void> => {
@@ -91,6 +92,14 @@ export const crearEvaluacion = async (req: Request, res: Response): Promise<void
             return;
         }
 
+        if (!req.user || !(await verificarOwnershipClase(Number(id_clase), req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para crear evaluaciones en esta clase',
+            });
+            return;
+        }
+
         const result = await query(
             `INSERT INTO evaluaciones (id_clase, titulo_evaluacion, porcentaje)
              VALUES ($1, $2, $3)
@@ -113,6 +122,22 @@ export const crearEvaluacion = async (req: Request, res: Response): Promise<void
 export const actualizarEvaluacion = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
+        const id_evaluacion = parseInt(id, 10);
+
+        if (isNaN(id_evaluacion)) {
+            res.status(400).json({ success: false, message: 'ID de evaluación inválido' });
+            return;
+        }
+
+        // Verificar ownership a través de la clase asociada
+        if (!req.user || !(await verificarOwnershipEvaluacion(id_evaluacion, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para actualizar esta evaluación',
+            });
+            return;
+        }
+
         const { titulo_evaluacion, porcentaje } = req.body;
 
         const fields: string[] = [];
@@ -133,7 +158,7 @@ export const actualizarEvaluacion = async (req: Request, res: Response): Promise
             return;
         }
 
-        values.push(id);
+        values.push(id_evaluacion);
         const result = await query(
             `UPDATE evaluaciones SET ${fields.join(', ')} WHERE id_evaluacion = $${paramIndex} RETURNING *`,
             values
@@ -155,9 +180,25 @@ export const actualizarEvaluacion = async (req: Request, res: Response): Promise
 export const eliminarEvaluacion = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
+        const id_evaluacion = parseInt(id, 10);
+
+        if (isNaN(id_evaluacion)) {
+            res.status(400).json({ success: false, message: 'ID de evaluación inválido' });
+            return;
+        }
+
+        // Verificar ownership a través de la clase asociada
+        if (!req.user || !(await verificarOwnershipEvaluacion(id_evaluacion, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para eliminar esta evaluación',
+            });
+            return;
+        }
+
         const result = await query(
             `DELETE FROM evaluaciones WHERE id_evaluacion = $1 RETURNING *`,
-            [id]
+            [id_evaluacion]
         );
         if (result.rows.length === 0) {
             res.status(404).json({ success: false, message: 'Evaluación no encontrada' });

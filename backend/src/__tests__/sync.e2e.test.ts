@@ -15,7 +15,11 @@ import request from 'supertest';
 import { Pool } from 'pg';
 import express from 'express';
 import cors from 'cors';
+import jwt from 'jsonwebtoken';
 import syncRoutes from '../routes/syncRoutes';
+
+// Asegurar que JWT_SECRET esté definido para los tests
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-for-e2e-sync';
 
 // Construimos una app Express exclusiva para pruebas, sin app.listen()
 const app = express();
@@ -51,8 +55,10 @@ const sufijo = `${TS}`;
 let docenteId: number;
 let cursoId: number;
 let claseId: number;
+let sesionAsistenciaId: number;
 let evaluacionId: number;
 let estudianteIds: number[] = [];
+let authToken: string;
 
 // ============================================================
 // Setup: Insertar datos semilla en una transacción
@@ -72,6 +78,13 @@ beforeAll(async () => {
         );
         docenteId = resDocente.rows[0].id_usuario;
 
+        // Token JWT válido para el docente creado (rol docente)
+        authToken = jwt.sign(
+            { id: docenteId, email: `docente.${sufijo}@test.com`, rol: 'docente' },
+            process.env.JWT_SECRET!,
+            { expiresIn: '1h' }
+        );
+
         // --- 2. Insertar curso ---
         const resCurso = await client.query(
             `INSERT INTO cursos (id_docente, nombre, descripcion)
@@ -89,6 +102,15 @@ beforeAll(async () => {
             [cursoId]
         );
         claseId = resClase.rows[0].id_clase;
+
+        // --- 3b. Insertar sesión de asistencia abierta ---
+        const resSesion = await client.query(
+            `INSERT INTO sesiones_asistencia (id_clase, id_docente, fecha, estado)
+             VALUES ($1, $2, CURRENT_DATE, 'abierta')
+             RETURNING id_sesion`,
+            [claseId, docenteId]
+        );
+        sesionAsistenciaId = resSesion.rows[0].id_sesion;
 
         // --- 4. Insertar evaluación ---
         const resEvaluacion = await client.query(
@@ -137,12 +159,12 @@ afterAll(async () => {
     try {
         await client.query('BEGIN');
 
-        await client.query('DELETE FROM asistencias_alumnos WHERE id_clase = $1', [claseId]);
+        await client.query('DELETE FROM asistencias_alumnos WHERE id_sesion = $1', [sesionAsistenciaId]);
+        await client.query('DELETE FROM sesiones_asistencia WHERE id_clase = $1', [claseId]);
         await client.query('DELETE FROM calificaciones WHERE id_evaluacion = $1', [evaluacionId]);
         await client.query('DELETE FROM evaluaciones WHERE id_clase = $1', [claseId]);
         await client.query('DELETE FROM curso_estudiantes WHERE id_curso = $1', [cursoId]);
-        await client.query('DELETE FROM necesidades_inclusivas WHERE id_estudiante = ANY($1)', [estudianteIds]);
-        await client.query('DELETE FROM exposicion_motivos WHERE id_usuario = ANY($1)', [estudianteIds]);
+        await client.query('DELETE FROM matriculas WHERE id_curso = $1', [cursoId]);
         await client.query('DELETE FROM clases WHERE id_curso = $1', [cursoId]);
         await client.query('DELETE FROM cursos WHERE id_docente = $1', [docenteId]);
         await client.query('DELETE FROM usuarios WHERE id_usuario = ANY($1)', [estudianteIds]);
@@ -174,6 +196,7 @@ describe('E2E: Sincronización Masiva POST /api/sync', () => {
             // Construir payload con los IDs reales de la BD
             payload = {
                 asistencias: estudianteIds.map((estId, idx) => ({
+                    id_sesion: sesionAsistenciaId,
                     id_clase: claseId,
                     id_estudiante: estId,
                     estado: idx === 2 ? 'ausente' : 'presente',
@@ -195,7 +218,7 @@ describe('E2E: Sincronización Masiva POST /api/sync', () => {
         test('debe retornar status 200 con payload válido', async () => {
             const res = await request(app)
                 .post('/api/sync')
-                .set('Authorization', 'Bearer test-token-e2e')
+                .set('Authorization', `Bearer ${authToken}`)
                 .send(payload)
                 .expect(200);
 
@@ -265,32 +288,34 @@ describe('E2E: Sincronización Masiva POST /api/sync', () => {
             );
             calificacionCountBefore = parseInt(countCalif.rows[0].cnt, 10);
 
-            // Construir payload inválido con una evaluación que NO existe (FK violada)
-            const evaluacionInexistente = evaluacionId + 99999;
+            // Construir payload inválido: evaluación válida del docente,
+            // pero id_estudiante inexistente → violación FK
+            const estudianteInexistente = Math.max(...estudianteIds) + 99999;
 
             payloadInvalido = {
                 // 2 asistencias válidas (usando estudiantes y clase existentes)
                 asistencias: estudianteIds.slice(0, 2).map((estId) => ({
+                    id_sesion: sesionAsistenciaId,
                     id_clase: claseId,
                     id_estudiante: estId,
                     estado: 'justificado',
                 })),
-                // 1 calificación con id_evaluacion que NO existe → violación FK
+                // 1 calificación con id_estudiante que NO existe → violación FK
                 calificaciones: [
                     {
-                        id_evaluacion: evaluacionInexistente,
-                        id_estudiante: estudianteIds[2],
+                        id_evaluacion: evaluacionId,
+                        id_estudiante: estudianteInexistente,
                         nota_preliminar: 15,
-                        observaciones: 'Evaluación inexistente - debe disparar ROLLBACK',
+                        observaciones: 'Estudiante inexistente - debe disparar ROLLBACK',
                     },
                 ],
             };
         });
 
-        test('debe retornar status 400 por violación de FK (evaluación inexistente)', async () => {
+        test('debe retornar status 400 por violación de FK (estudiante inexistente)', async () => {
             const res = await request(app)
                 .post('/api/sync')
-                .set('Authorization', 'Bearer test-token-e2e')
+                .set('Authorization', `Bearer ${authToken}`)
                 .send(payloadInvalido)
                 .expect(400);
 

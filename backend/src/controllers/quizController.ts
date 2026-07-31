@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query, default as pool } from '../db';
+import { verificarOwnershipEvaluacion } from '../utils/authorization';
 
 // ============================================================
 // Quiz Controller — CRUD de quizzes + intentos de estudiantes
@@ -90,6 +91,14 @@ export const guardarQuiz = async (req: Request, res: Response): Promise<void> =>
         const id_evaluacion = parseInt(req.params.id, 10);
         if (isNaN(id_evaluacion)) {
             res.status(400).json({ success: false, message: 'ID de evaluación inválido' });
+            return;
+        }
+
+        if (!req.user || !(await verificarOwnershipEvaluacion(id_evaluacion, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para gestionar el quiz de esta evaluación',
+            });
             return;
         }
 
@@ -339,12 +348,82 @@ export const finalizarQuiz = async (req: Request, res: Response): Promise<void> 
     }
 };
 
+/**
+ * GET /api/quizzes/evaluacion/:id/resultados
+ * Resultados de un quiz agrupados por evaluación (solo docentes).
+ */
+export const obtenerResultadosPorEvaluacion = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const id_evaluacion = parseInt(req.params.id, 10);
+        if (isNaN(id_evaluacion)) {
+            res.status(400).json({ success: false, message: 'ID de evaluación inválido' });
+            return;
+        }
+
+        if (!req.user || !(await verificarOwnershipEvaluacion(id_evaluacion, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para ver los resultados de este quiz',
+            });
+            return;
+        }
+
+        const quizResult = await query(
+            `SELECT id_quiz FROM quizzes WHERE id_evaluacion = $1 LIMIT 1`,
+            [id_evaluacion]
+        );
+        if (quizResult.rows.length === 0) {
+            res.status(404).json({ success: false, message: 'No hay quiz para esta evaluación' });
+            return;
+        }
+        const id_quiz = quizResult.rows[0].id_quiz;
+
+        const result = await query(
+            `SELECT
+                qi.id_estudiante,
+                u.nombre_completo,
+                qi.nota,
+                qi.acertadas,
+                qi.total_preguntas,
+                qi.finalizado_en
+             FROM quiz_intentos qi
+             JOIN usuarios u ON u.id_usuario = qi.id_estudiante
+             WHERE qi.id_quiz = $1 AND qi.finalizado = true
+             ORDER BY qi.nota DESC, u.nombre_completo`,
+            [id_quiz]
+        );
+
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        logger.error({ err: error }, '[QuizController] Error al obtener resultados por evaluación:');
+        res.status(500).json({ success: false, message: 'Error interno' });
+    }
+};
+
 /** GET /api/quizzes/:id/resultados — obtener resultados de todos los estudiantes (solo docentes) */
 export const obtenerResultadosQuiz = async (req: Request, res: Response): Promise<void> => {
     try {
         const id_quiz = parseInt(req.params.id, 10);
         if (isNaN(id_quiz)) {
             res.status(400).json({ success: false, message: 'ID de quiz inválido' });
+            return;
+        }
+
+        // Verificar ownership a través de la evaluación asociada al quiz
+        const quizCheck = await query(
+            `SELECT id_evaluacion FROM quizzes WHERE id_quiz = $1`,
+            [id_quiz]
+        );
+        if (quizCheck.rows.length === 0) {
+            res.status(404).json({ success: false, message: 'Quiz no encontrado' });
+            return;
+        }
+        const id_evaluacion = Number(quizCheck.rows[0].id_evaluacion);
+        if (!req.user || !(await verificarOwnershipEvaluacion(id_evaluacion, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para ver resultados de este quiz',
+            });
             return;
         }
 

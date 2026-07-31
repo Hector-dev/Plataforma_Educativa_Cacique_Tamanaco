@@ -2,7 +2,7 @@
  * Pruebas unitarias: cursoController
  */
 import { Request, Response } from 'express';
-import { crearCurso, listarCursos } from '../controllers/cursoController';
+import { crearCurso, listarCursos, listarEstudiantesDisponibles } from '../controllers/cursoController';
 
 jest.mock('../db', () => ({
   query: jest.fn(),
@@ -93,6 +93,63 @@ describe('cursoController', () => {
           page: 1,
         })
       );
+    });
+  });
+
+  describe('listarEstudiantesDisponibles', () => {
+    test('debe listar estudiantes no matriculados con ownership válido', async () => {
+      const estudiantes = [
+        { id_usuario: 2, nombre_completo: 'Ana López', cedula: 'V12345', email: 'ana@test.com' },
+        { id_usuario: 3, nombre_completo: 'Carlos Ruiz', cedula: 'V67890', email: 'carlos@test.com' },
+      ];
+      query
+        .mockResolvedValueOnce({ rows: [{ id_docente: 1 }], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: estudiantes, rowCount: 2 });
+
+      const req = {
+        params: { id: '1' },
+        user: { id_usuario: 1, rol: 'docente' },
+      } as unknown as Request;
+      const res = mockRes();
+
+      await listarEstudiantesDisponibles(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: true, data: estudiantes })
+      );
+      expect(query).toHaveBeenCalledWith(
+        expect.stringContaining("LOWER(u.rol) = 'estudiante'"),
+        [1]
+      );
+    });
+
+    test('debe rechazar sin ownership', async () => {
+      query.mockResolvedValueOnce({ rows: [{ id_docente: 99 }], rowCount: 1 });
+
+      const req = {
+        params: { id: '1' },
+        user: { id_usuario: 1, rol: 'docente' },
+      } as unknown as Request;
+      const res = mockRes();
+
+      await listarEstudiantesDisponibles(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false })
+      );
+    });
+
+    test('debe rechazar ID inválido', async () => {
+      const req = {
+        params: { id: 'abc' },
+        user: { id_usuario: 1, rol: 'admin' },
+      } as unknown as Request;
+      const res = mockRes();
+
+      await listarEstudiantesDisponibles(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
     });
   });
 });

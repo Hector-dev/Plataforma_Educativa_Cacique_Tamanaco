@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 import { logger } from './utils/logger';
 
 import usuarioRoutes from './routes/usuarioRoutes';
@@ -32,22 +33,10 @@ app.use(helmet());
 // Compresión gzip/brotli para respuestas JSON
 app.use(compression());
 
-// CORS — solo orígenes permitidos
-const allowedOrigins = [
-    'http://localhost',
-    'http://localhost:4200',              // Angular dev server
-    process.env.CORS_ORIGIN,              // Dominio de producción
-].filter(Boolean) as string[];
-
+// CORS — abierto (solo para desarrollo/pruebas locales)
+// NOTA: En producción se debe restringir a orígenes conocidos.
 app.use(cors({
-    origin: (origin, callback) => {
-        // Permitir requests sin origin (server-to-server, Postman, curl)
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error(`Origen no permitido por CORS: ${origin}`));
-        }
-    },
+    origin: true,
     credentials: true,
 }));
 
@@ -58,6 +47,9 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
     (_req as any).requestId = id;
     next();
 });
+
+// Parseo de cookies firmadas/HttpOnly
+app.use(cookieParser(process.env.COOKIE_SECRET || process.env.JWT_SECRET));
 
 // Parseo de JSON y urlencoded — body limitado a 1MB
 app.use(express.json({ limit: '1mb' }));
