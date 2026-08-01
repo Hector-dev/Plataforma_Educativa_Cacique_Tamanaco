@@ -280,6 +280,12 @@ interface CursoDocumento {
                             @if (fila.id_entrega) {
                               <span class="entrega-badge">{{ fila.formato_entrega }}</span>
                               <span class="entrega-meta">{{ fila.fecha_entrega | date:'short' }}</span>
+                              @if (urlDocumentoEntrega(fila)) {
+                                <a class="entrega-link" [href]="urlDocumentoEntrega(fila)!"
+                                  target="_blank" rel="noopener">
+                                  {{ fila.formato_entrega === 'URL' ? 'Abrir enlace' : 'Ver documento' }}
+                                </a>
+                              }
                             } @else {
                               <span class="entrega-meta">Sin entrega</span>
                             }
@@ -457,6 +463,8 @@ interface CursoDocumento {
     .btn-outline:hover { background: var(--glass-highlight); }
     .entrega-badge { display: inline-block; padding: 0.2rem 0.5rem; background: var(--accent); color: #000; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 600; margin-right: 0.5rem; }
     .entrega-meta { color: var(--text-muted); font-size: 0.8rem; }
+    .entrega-link { display: inline-block; margin-top: 0.25rem; color: var(--primary-gold); font-size: 0.8rem; font-weight: 600; text-decoration: underline; }
+    .entrega-link:hover { filter: brightness(1.15); }
     .row-error { color: var(--error); font-size: 0.8rem; margin: 0.25rem 0 0; }
     .row-success { color: var(--success); font-size: 0.8rem; margin: 0.25rem 0 0; }
 
@@ -705,6 +713,14 @@ export class CoursePreviewComponent implements OnInit {
   private extraerIdTarea(itemId: string): number | null {
     const match = itemId.match(/^tar_(\d+)$/);
     return match ? parseInt(match[1], 10) : null;
+  }
+
+  urlDocumentoEntrega(fila: CalificacionFila): string | null {
+    if (!fila.contenido) return null;
+    const c = fila.contenido.trim();
+    if (/^https?:\/\//i.test(c)) return c;
+    const norm = c.replace(/^\.?\//, '');
+    return `/${norm}`;
   }
 
   private cargarCalificacionesEvaluacion(evalId: number): void {
