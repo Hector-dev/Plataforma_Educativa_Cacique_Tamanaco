@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
 import { query } from '../db';
+import { verificarOwnershipTarea } from '../utils/authorization';
 
 // ============================================================
 // Endpoint de Entrega de Tareas
@@ -325,5 +326,55 @@ export const crearEntregaTarea = async (req: Request, res: Response): Promise<vo
             success: false,
             message: 'Error interno del servidor al registrar la entrega',
         });
+    }
+};
+
+// ============================================================
+// GET /api/entregas/tarea/:id/entregas
+// Lista los estudiantes matriculados en el curso de la tarea
+// con su entrega (si existe). Solo docentes/admin.
+// ============================================================
+
+export const listarEntregasDeTarea = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const id_tarea_curso = Number(req.params.id);
+        if (isNaN(id_tarea_curso)) {
+            res.status(400).json({ success: false, message: 'ID de tarea inválido' });
+            return;
+        }
+
+        if (!req.user || !(await verificarOwnershipTarea(id_tarea_curso, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para ver las entregas de esta tarea',
+            });
+            return;
+        }
+
+        const result = await query(
+            `SELECT
+                u.id_usuario AS id_estudiante,
+                u.nombre_completo,
+                u.cedula,
+                e.id_entrega_tarea AS id_entrega,
+                e.formato_entrega,
+                e.contenido,
+                e.fecha_entrega
+             FROM tareas_curso t
+             JOIN clases cl ON cl.id_clase = t.id_clase
+             JOIN cursos cu ON cu.id_curso = cl.id_curso
+             JOIN matriculas m ON m.id_curso = cu.id_curso AND m.estado = 'activo'
+             JOIN usuarios u ON u.id_usuario = m.id_estudiante
+             LEFT JOIN entregas_tarea e
+                 ON e.id_tarea_curso = t.id_tarea_curso AND e.id_estudiante = u.id_usuario
+             WHERE t.id_tarea_curso = $1
+             ORDER BY u.nombre_completo`,
+            [id_tarea_curso]
+        );
+
+        res.json({ success: true, data: result.rows });
+    } catch (error: any) {
+        logger.error({ err: error }, '[EntregaController] Error al listar entregas de tarea:');
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 };

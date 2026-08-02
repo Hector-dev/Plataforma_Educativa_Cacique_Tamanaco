@@ -52,6 +52,8 @@ interface CursoItem {
   tieneQuiz?: boolean;
   entregada?: boolean;
   fechaEntrega?: string | null;
+  urlEntrega?: string | null;
+  formatoEntrega?: string | null;
 }
 
 interface Leccion {
@@ -211,7 +213,58 @@ interface CursoDocumento {
             } @else if (errorNotas()) {
               <p class="alert-error">{{ errorNotas() }}</p>
             } @else {
-              @if (modoQuiz()) {
+              @if (modoTarea()) {
+                <div class="table-responsive">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Estudiante</th>
+                        <th>Cédula</th>
+                        <th>Formato</th>
+                        <th>Fecha de entrega</th>
+                        <th>Archivo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (fila of calificaciones(); track fila.id_estudiante) {
+                        <tr>
+                          <td>{{ fila.nombre_completo }}</td>
+                          <td>{{ fila.cedula }}</td>
+                          <td>
+                            @if (fila.id_entrega) {
+                              <span class="entrega-badge">{{ fila.formato_entrega }}</span>
+                            } @else {
+                              <span class="entrega-meta">—</span>
+                            }
+                          </td>
+                          <td>
+                            @if (fila.fecha_entrega) {
+                              <span class="entrega-meta">{{ fila.fecha_entrega | date:'short' }}</span>
+                            } @else {
+                              <span class="entrega-meta">—</span>
+                            }
+                          </td>
+                          <td>
+                            @if (urlDocumentoEntrega(fila)) {
+                              <a class="entrega-link" [href]="urlDocumentoEntrega(fila)!"
+                                target="_blank" rel="noopener">
+                                {{ fila.formato_entrega === 'URL' ? 'Abrir enlace' : 'Ver documento' }}
+                              </a>
+                            } @else {
+                              <span class="entrega-meta">Sin entrega</span>
+                            }
+                          </td>
+                        </tr>
+                      }
+                      @if (calificaciones().length === 0) {
+                        <tr>
+                          <td colspan="5" class="empty-cell">No hay estudiantes matriculados en este curso.</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else if (modoQuiz()) {
                 <div class="table-responsive">
                   <table class="data-table">
                     <thead>
@@ -520,14 +573,17 @@ export class CoursePreviewComponent implements OnInit {
   readonly estudiantes = signal<Estudiante[]>([]);
   readonly cargando = signal(true);
   readonly error = signal<string | null>(null);
+  private readonly entregaInfo = signal<Map<string, { url: string | null; formato: string | null; fecha: string | null }>>(new Map());
 
   readonly panelNotasAbierto = signal(false);
   readonly itemNotasSeleccionado = signal<CursoItem | null>(null);
   readonly modoQuiz = signal(false);
+  readonly modoTarea = signal(false);
   readonly cargandoNotas = signal(false);
   readonly errorNotas = signal<string | null>(null);
   readonly calificaciones = signal<CalificacionFila[]>([]);
   readonly resultadosQuiz = signal<QuizResultado[]>([]);
+  readonly idTareaActiva = signal<number | null>(null);
 
   readonly leccionesAbiertas = signal<Record<string, boolean>>({});
   private idEvaluacionActiva = signal<number | null>(null);
@@ -582,10 +638,15 @@ export class CoursePreviewComponent implements OnInit {
     ).subscribe({
       next: (res) => {
         if (!res.success || !res.data) return;
-        const entregadas = new Set<string>();
-        for (const e of res.data.evaluaciones) entregadas.add(e.itemId);
-        for (const t of res.data.tareas) entregadas.add(t.itemId);
-        this.marcarEntregadas(entregadas);
+        const mapa = new Map<string, { url: string | null; formato: string | null; fecha: string | null }>();
+        for (const e of res.data.evaluaciones) {
+          mapa.set(e.itemId, { url: e.contenido, formato: e.formato, fecha: e.fechaEntrega });
+        }
+        for (const t of res.data.tareas) {
+          mapa.set(t.itemId, { url: t.contenido, formato: t.formato, fecha: t.fechaEntrega });
+        }
+        this.entregaInfo.set(mapa);
+        this.aplicarEntregas();
       },
       error: (err) => {
         console.error('Error al cargar mis entregas:', err);
@@ -593,14 +654,22 @@ export class CoursePreviewComponent implements OnInit {
     });
   }
 
-  private marcarEntregadas(entregadas: Set<string>): void {
+  private aplicarEntregas(): void {
+    const mapa = this.entregaInfo();
     this.documento.update((doc) => {
-      if (!doc) return doc;
+      if (!doc || mapa.size === 0) return doc;
       const marcarItems = (items: CursoItem[]): CursoItem[] =>
-        items.map((i) => ({
-          ...i,
-          entregada: entregadas.has(i.id) ? true : i.entregada,
-        }));
+        items.map((i) => {
+          const info = mapa.get(i.id);
+          if (!info) return i;
+          return {
+            ...i,
+            entregada: true,
+            urlEntrega: info.url,
+            formatoEntrega: info.formato,
+            fechaEntrega: info.fecha,
+          };
+        });
       return {
         ...doc,
         modulos: (doc.modulos || []).map((m) => ({
@@ -623,6 +692,7 @@ export class CoursePreviewComponent implements OnInit {
       next: (res) => {
         if (res.success && res.data) {
           this.documento.set(res.data);
+          this.aplicarEntregas();
         } else {
           this.error.set('No se pudo cargar la estructura del curso');
         }
@@ -679,10 +749,23 @@ export class CoursePreviewComponent implements OnInit {
     this.itemNotasSeleccionado.set(item);
     this.panelNotasAbierto.set(true);
     this.modoQuiz.set(item.tipo === 'quiz');
+    this.modoTarea.set(item.tipo === 'tarea');
     this.cargandoNotas.set(true);
     this.errorNotas.set(null);
     this.calificaciones.set([]);
     this.resultadosQuiz.set([]);
+
+    if (item.tipo === 'tarea') {
+      const tarId = this.extraerIdTarea(item.id);
+      if (!tarId) {
+        this.errorNotas.set('No se pudo identificar la tarea');
+        this.cargandoNotas.set(false);
+        return;
+      }
+      this.idTareaActiva.set(tarId);
+      this.cargarEntregasTarea(tarId);
+      return;
+    }
 
     const evalId = this.extraerIdEvaluacion(item.id);
     if (!evalId) {
@@ -703,6 +786,8 @@ export class CoursePreviewComponent implements OnInit {
     this.panelNotasAbierto.set(false);
     this.itemNotasSeleccionado.set(null);
     this.idEvaluacionActiva.set(null);
+    this.idTareaActiva.set(null);
+    this.modoTarea.set(false);
   }
 
   private extraerIdEvaluacion(itemId: string): number | null {
@@ -738,6 +823,25 @@ export class CoursePreviewComponent implements OnInit {
       error: (err) => {
         this.cargandoNotas.set(false);
         this.errorNotas.set(err.error?.message || 'Error al cargar las calificaciones');
+      },
+    });
+  }
+
+  private cargarEntregasTarea(tarId: number): void {
+    this.http.get<{ success: boolean; data: CalificacionFila[] }>(
+      `${this.apiUrl}/entregas/tarea/${tarId}/entregas`
+    ).subscribe({
+      next: (res) => {
+        this.cargandoNotas.set(false);
+        if (res.success && res.data) {
+          this.calificaciones.set(res.data);
+        } else {
+          this.errorNotas.set('No se pudieron cargar las entregas de la tarea');
+        }
+      },
+      error: (err) => {
+        this.cargandoNotas.set(false);
+        this.errorNotas.set(err.error?.message || 'Error al cargar las entregas de la tarea');
       },
     });
   }

@@ -15,6 +15,8 @@ export interface CursoItem {
   tieneQuiz?: boolean;
   entregada?: boolean;
   fechaEntrega?: string | null;
+  urlEntrega?: string | null;
+  formatoEntrega?: string | null;
 }
 
 export interface Leccion {
@@ -103,6 +105,9 @@ export interface Leccion {
                     @if (item.tipo === 'tarea') {
                       @if (item.entregada) {
                         <span class="badge-entregado">✅ Entregado</span>
+                        @if (item.urlEntrega) {
+                          <a class="btn-action btn-view" [href]="sanitizeUrl(item.urlEntrega)" target="_blank" rel="noopener noreferrer">📄 Ver mi entrega</a>
+                        }
                         @if (!vencida(item)) {
                           <button class="btn-action btn-entregar" (click)="abrirEntrega.emit(item)">📤 Cambiar entrega</button>
                         }
@@ -113,6 +118,9 @@ export interface Leccion {
                       }
                     }
                   } @else {
+                    @if (item.tipo === 'tarea') {
+                      <button class="btn-action btn-notas" (click)="abrirNotas.emit(item)">📥 Ver entregas</button>
+                    }
                     @if (item.tipo === 'evaluacion' || item.tipo === 'quiz') {
                       <button class="btn-action btn-notas" (click)="abrirNotas.emit(item)">Ver notas</button>
                     }
@@ -295,6 +303,7 @@ export class LessonCardComponent {
     if (!url) return '#';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     if (url.startsWith('www.')) return 'https://' + url;
+    if (url.startsWith('uploads/')) return '/' + url;
     return url;
   }
 }

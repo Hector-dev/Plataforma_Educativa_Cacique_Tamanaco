@@ -111,6 +111,31 @@ export const verificarOwnershipEvaluacion = async (
 };
 
 /**
+ * Obtiene el id_docente del curso de una tarea.
+ */
+export const obtenerDocenteDeTarea = async (id_tarea: number): Promise<number | null> => {
+    const result = await query(
+        `SELECT c.id_docente
+         FROM tareas_curso t
+         JOIN clases cl ON cl.id_clase = t.id_clase
+         JOIN cursos c ON c.id_curso = cl.id_curso
+         WHERE t.id_tarea_curso = $1`,
+        [id_tarea]
+    );
+    return result.rows.length > 0 ? result.rows[0].id_docente : null;
+};
+
+export const verificarOwnershipTarea = async (
+    id_tarea: number,
+    reqUser: AuthUser
+): Promise<boolean> => {
+    if (esAdmin(reqUser.rol)) return true;
+    if (!esDocente(reqUser.rol)) return false;
+    const idDocente = await obtenerDocenteDeTarea(id_tarea);
+    return idDocente !== null && idDocente === reqUser.id_usuario;
+};
+
+/**
  * Verifica ownership de un conjunto de clases para un docente.
  * Devuelve true si el usuario es admin o si es docente de todos los cursos.
  */
