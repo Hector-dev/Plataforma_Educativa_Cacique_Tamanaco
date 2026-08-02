@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
@@ -122,9 +122,22 @@ export interface Leccion {
 
               @if (item.tipo === 'material' && item.urlRecurso && item.tipoRecurso === 'video') {
                 <div class="material-preview">
-                  <video controls preload="metadata" [src]="sanitizeUrl(item.urlRecurso)">
-                    Tu navegador no soporta la reproducción de video.
-                  </video>
+                  @if (!videoError(item.id)) {
+                    <video controls preload="metadata" playsinline
+                           [src]="sanitizeUrl(item.urlRecurso)"
+                           (error)="marcarVideoError(item.id)">
+                      Tu navegador no soporta la reproducción de video.
+                    </video>
+                  } @else {
+                    <div class="video-error-box">
+                      <span>⚠️ No se pudo reproducir este video. Puedes descargarlo para verlo.</span>
+                    </div>
+                  }
+                  <div class="material-preview-actions">
+                    <a class="btn-download" [href]="sanitizeUrl(item.urlRecurso)"
+                       [download]="nombreArchivo(item.urlRecurso)"
+                       target="_blank" rel="noopener noreferrer">⬇️ Descargar video</a>
+                  </div>
                 </div>
               } @else if (item.tipo === 'material' && item.urlRecurso && item.tipoRecurso === 'imagen') {
                 <div class="material-preview">
@@ -205,6 +218,10 @@ export interface Leccion {
     .material-preview { margin-top: 0.6rem; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); overflow: hidden; background: #000; }
     .material-preview video { width: 100%; max-height: 320px; display: block; background: #000; }
     .material-preview img { width: 100%; max-height: 320px; object-fit: contain; display: block; background: #000; }
+    .video-error-box { padding: 1rem; background: var(--bg-input, #fef2f2); color: #b91c1c; font-size: 0.85rem; text-align: center; }
+    .material-preview-actions { display: flex; justify-content: flex-end; padding: 0.4rem 0.6rem; background: var(--bg-input, #111827); }
+    .btn-download { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.8rem; background: var(--accent, #6366f1); color: #fff; border-radius: var(--radius-sm, 8px); font-size: 0.8rem; font-weight: 600; text-decoration: none; }
+    .btn-download:hover { filter: brightness(1.1); }
 
     @media (max-width: 600px) {
       .lesson-header { padding: 0.75rem; gap: 0.55rem; }
@@ -225,6 +242,22 @@ export class LessonCardComponent {
   @Output() toggle = new EventEmitter<void>();
   @Output() abrirNotas = new EventEmitter<CursoItem>();
   @Output() abrirEntrega = new EventEmitter<CursoItem>();
+
+  private readonly videosConError = signal<Set<string>>(new Set());
+
+  videoError(itemId: string): boolean {
+    return this.videosConError().has(itemId);
+  }
+
+  marcarVideoError(itemId: string): void {
+    this.videosConError.update(s => new Set(s).add(itemId));
+  }
+
+  nombreArchivo(url: string): string {
+    if (!url) return 'video';
+    const partes = url.split('/');
+    return partes[partes.length - 1] || 'video';
+  }
 
   iconoItem(tipo: string): string {
     switch (tipo) {
