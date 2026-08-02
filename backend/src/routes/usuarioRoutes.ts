@@ -18,13 +18,13 @@ const soloAdmin = requireRole('admin');
 
 // ─── Rate Limiter para /login (anti fuerza bruta) ────────
 const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,   // 15 minutos
-    max: 10,                     // 10 intentos por ventana por IP
+    windowMs: 3 * 60 * 1000,    // 3 minutos
+    max: 5,                      // 5 intentos por ventana por IP
     standardHeaders: true,       // RateLimit-* headers
     legacyHeaders: false,
     message: {
         success: false,
-        message: 'Demasiados intentos de inicio de sesión. Intente de nuevo en 15 minutos.',
+        message: 'Demasiados intentos de inicio de sesión. Intente de nuevo en 3 minutos.',
     },
 });
 

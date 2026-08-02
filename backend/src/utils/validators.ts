@@ -6,11 +6,19 @@ import { z } from 'zod';
 
 // ─── Usuarios ──────────────────────────────────────────
 
+export const passwordSchema = z
+    .string()
+    .min(8, 'La contraseña debe tener al menos 8 caracteres')
+    .max(100, 'La contraseña no puede superar los 100 caracteres')
+    .regex(/[A-Z]/, 'La contraseña debe contener al menos una letra mayúscula')
+    .regex(/[a-z]/, 'La contraseña debe contener al menos una letra minúscula')
+    .regex(/\d/, 'La contraseña debe contener al menos un número');
+
 export const crearUsuarioSchema = z.object({
     nombre_completo: z.string().min(2).max(255),
     cedula: z.string().min(1).max(20),
     email: z.string().email().max(255),
-    password: z.string().min(4).max(100),
+    password: passwordSchema,
     rol: z.enum(['Administrador', 'administrador', 'admin', 'Docente', 'docente', 'Estudiante', 'estudiante']),
     tipo_discapacidad: z.string().max(100).optional().nullable(),
     foto_url: z.string().max(500).optional().nullable(),

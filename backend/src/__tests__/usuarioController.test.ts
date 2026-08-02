@@ -51,7 +51,7 @@ describe('usuarioController', () => {
           nombre_completo: 'Test User',
           cedula: 'V-12345',
           email: 'test@test.com',
-          password: 'secret123',
+          password: 'Secret123',
           rol: 'Estudiante',
         },
       } as Request;
@@ -67,7 +67,7 @@ describe('usuarioController', () => {
 
     test('debe rechazar si falta nombre_completo (zod)', async () => {
       const req = {
-        body: { email: 'test@test.com', password: '1234', rol: 'Estudiante', cedula: 'V-1' },
+        body: { email: 'test@test.com', password: 'Secret123', rol: 'Estudiante', cedula: 'V-1' },
       } as Request;
       const res = mockRes();
 
@@ -87,7 +87,7 @@ describe('usuarioController', () => {
           nombre_completo: 'Test',
           cedula: 'V-1',
           email: 'test@test.com',
-          password: 'secret123',
+          password: 'Secret123',
           rol: 'Estudiante',
         },
       } as Request;
