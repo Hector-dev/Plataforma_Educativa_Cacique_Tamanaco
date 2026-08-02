@@ -317,7 +317,7 @@ segmentados por subsistema.
 flowchart LR
     subgraph LMS["SISTEMA LMS / SGA"]
         direction LR
-        M1["1. USUARIOS Y COMUNICACIÓN<br/>usuarios · documentos_personales<br/>asistencias_trabajadores · mensajes"]
+        M1["1. USUARIOS Y COMUNICACIÓN<br/>usuarios · documentos_personales<br/>asistencias_trabajadores"]
         M2["2. ESTRUCTURA ACADÉMICA<br/>cursos · modulos · clases<br/>materiales · materiales_curso"]
         M3["3. MATRÍCULA Y TRÁMITES<br/>matriculas · curso_estudiantes<br/>exposicion_motivos · constancias_estudio"]
         M4["4. EVALUACIONES Y QUIZZES<br/>evaluaciones · entregas_evaluacion<br/>calificaciones · quizzes + respuestas"]
@@ -338,8 +338,6 @@ erDiagram
     %% MÓDULO 1: USUARIOS Y COMUNICACIÓN
     %% ==========================================
     usuarios ||--o{ documentos_personales : "registra"
-    usuarios ||--o{ mensajes : "envía (id_remitente)"
-    usuarios ||--o{ mensajes : "recibe (id_destinatario)"
     usuarios ||--o{ asistencias_trabajadores : "registra_trabajador"
 
     %% ==========================================
@@ -402,8 +400,6 @@ diagrama monolítico ilegible.
 ```mermaid
 erDiagram
     usuarios ||--o{ documentos_personales : "registra"
-    usuarios ||--o{ mensajes : "envía (id_remitente)"
-    usuarios ||--o{ mensajes : "recibe (id_destinatario)"
     usuarios ||--o{ asistencias_trabajadores : "registra_trabajador"
 
     usuarios {
@@ -426,15 +422,6 @@ erDiagram
         text numero_identificacion
         text archivo_url
         timestamptz fecha_subida
-    }
-    mensajes {
-        serial id_mensaje PK
-        integer id_remitente FK
-        integer id_destinatario FK
-        varchar asunto
-        text cuerpo
-        boolean leido
-        timestamptz fecha_envio
     }
     asistencias_trabajadores {
         serial id_asistencia_trabajador PK
