@@ -1,0 +1,392 @@
+# Diagramas — Plataforma Educativa Cacique Tamanaco
+
+Diagramas Mermaid generados a partir del esquema real de la base de datos
+(`init-scripts/`) y de los componentes del frontend (`frontend/src/app/`).
+
+---
+
+## 1. Diagrama de la base de datos
+
+> Esquema final: las tablas `tareas_curso` y `entregas_tarea` ya no existen
+> (migración `08_migrar_tareas_a_evaluaciones.sql`).
+
+```mermaid
+erDiagram
+    usuarios ||--o{ cursos : "docente (id_docente)"
+    usuarios ||--o{ documentos_personales : "id_usuario"
+    usuarios ||--o{ curso_estudiantes : "estudiante"
+    cursos ||--o{ curso_estudiantes : "id_curso"
+    usuarios ||--o{ matriculas : "id_estudiante"
+    cursos ||--o{ matriculas : "id_curso"
+    matriculas ||--o{ exposicion_motivos : "id_matricula"
+    cursos ||--o{ clases : "id_curso"
+    cursos ||--o{ materiales : "id_curso"
+    cursos ||--o{ modulos : "id_curso"
+    modulos ||--o{ clases : "id_modulo (opcional)"
+    clases ||--o{ evaluaciones : "id_clase"
+    clases ||--o{ materiales_curso : "id_clase"
+    clases ||--o{ sesiones_asistencia : "id_clase"
+    clases ||--o{ asistencias_alumnos : "id_clase"
+    evaluaciones ||--o{ entregas_evaluacion : "id_evaluacion"
+    evaluaciones ||--o{ calificaciones : "id_evaluacion"
+    evaluaciones ||--o{ quizzes : "id_evaluacion"
+    usuarios ||--o{ entregas_evaluacion : "id_estudiante"
+    usuarios ||--o{ calificaciones : "id_estudiante"
+    materiales ||--o{ progreso_material : "id_material"
+    usuarios ||--o{ progreso_material : "id_estudiante"
+    usuarios ||--o{ asistencias_alumnos : "id_estudiante"
+    sesiones_asistencia ||--o{ asistencias_alumnos : "id_sesion"
+    usuarios ||--o{ asistencias_trabajadores : "id_trabajador"
+    usuarios ||--o{ mensajes : "id_remitente"
+    usuarios ||--o{ mensajes : "id_destinatario"
+    usuarios ||--o{ constancias_estudio : "id_estudiante"
+    quizzes ||--o{ quiz_preguntas : "id_quiz"
+    quiz_preguntas ||--o{ quiz_opciones : "id_pregunta"
+    quizzes ||--o{ quiz_intentos : "id_quiz"
+    usuarios ||--o{ quiz_intentos : "id_estudiante"
+    quiz_intentos ||--o{ quiz_respuestas : "id_intento"
+    quiz_preguntas ||--o{ quiz_respuestas : "id_pregunta"
+
+    usuarios {
+        serial id_usuario PK
+        varchar nombre_completo
+        varchar cedula UK
+        varchar email UK
+        varchar password
+        varchar rol
+        varchar tipo_discapacidad
+        varchar foto_url
+        integer edad
+        varchar genero
+        timestamptz fecha_creacion
+    }
+    cursos {
+        serial id_curso PK
+        integer id_docente FK
+        varchar nombre
+        text descripcion
+        integer version
+        timestamptz creado_en
+    }
+    modulos {
+        serial id_modulo PK
+        integer id_curso FK
+        varchar titulo
+        text descripcion
+        numeric orden
+    }
+    clases {
+        serial id_clase PK
+        integer id_curso FK
+        integer id_modulo FK
+        varchar titulo
+        varchar tipo_discapacidad
+        timestamptz fecha
+        text enlace_recurso
+        text descripcion
+        integer duracion_minutos
+        numeric orden
+    }
+    evaluaciones {
+        serial id_evaluacion PK
+        integer id_clase FK
+        varchar titulo_evaluacion
+        numeric porcentaje
+        text descripcion
+        numeric orden
+    }
+    entregas_evaluacion {
+        serial id_entrega PK
+        integer id_evaluacion FK
+        integer id_estudiante FK
+        varchar formato_entrega
+        text contenido
+        timestamptz fecha_entrega
+    }
+    calificaciones {
+        serial id_calificacion PK
+        integer id_evaluacion FK
+        integer id_estudiante FK
+        numeric nota_preliminar
+        numeric nota_definitiva
+        text observaciones
+        timestamptz fecha_registro
+    }
+    quizzes {
+        serial id_quiz PK
+        integer id_evaluacion FK
+        varchar titulo
+        text descripcion
+        integer tiempo_limite_min
+        boolean activo
+        timestamptz creado_en
+    }
+    quiz_preguntas {
+        serial id_pregunta PK
+        integer id_quiz FK
+        text enunciado
+        varchar tipo
+        integer orden
+    }
+    quiz_opciones {
+        serial id_opcion PK
+        integer id_pregunta FK
+        text texto
+        boolean es_correcta
+        char orden
+    }
+    quiz_intentos {
+        serial id_intento PK
+        integer id_quiz FK
+        integer id_estudiante FK
+        numeric nota
+        integer total_preguntas
+        integer acertadas
+        boolean finalizado
+        timestamptz iniciado_en
+        timestamptz finalizado_en
+    }
+    quiz_respuestas {
+        serial id_respuesta PK
+        integer id_intento FK
+        integer id_pregunta FK
+        integer id_opcion FK
+        boolean es_correcta
+    }
+    materiales {
+        serial id_material PK
+        integer id_curso FK
+        varchar titulo
+        varchar tipo
+        text contenido
+        integer orden
+    }
+    materiales_curso {
+        serial id_material_curso PK
+        integer id_clase FK
+        varchar titulo
+        text descripcion
+        text url_recurso
+        varchar tipo_recurso
+        numeric orden
+    }
+    progreso_material {
+        serial id_progreso PK
+        integer id_estudiante FK
+        integer id_material FK
+        varchar estado
+        numeric nota
+    }
+    sesiones_asistencia {
+        serial id_sesion PK
+        integer id_clase FK
+        integer id_docente FK
+        date fecha
+        varchar estado
+        integer total_presentes
+        integer total_ausentes
+        integer total_justificados
+        timestamp creado_en
+        timestamp cerrado_en
+    }
+    asistencias_alumnos {
+        serial id_asistencia PK
+        integer id_clase FK
+        integer id_estudiante FK
+        integer id_sesion FK
+        varchar estado
+        date fecha_registro
+    }
+    asistencias_trabajadores {
+        serial id_asistencia_trabajador PK
+        integer id_trabajador FK
+        date fecha
+        time hora_entrada
+        time hora_salida
+        varchar estado
+    }
+    matriculas {
+        serial id_matricula PK
+        integer id_estudiante FK
+        integer id_curso FK
+        varchar estado
+        timestamptz fecha_inscripcion
+    }
+    curso_estudiantes {
+        integer id_curso PK, FK
+        integer id_estudiante PK, FK
+        timestamptz inscrito_en
+    }
+    documentos_personales {
+        serial id_documento PK
+        integer id_usuario FK
+        varchar tipo_documento
+        text numero_identificacion
+        text archivo_url
+        timestamptz fecha_subida
+    }
+    mensajes {
+        serial id_mensaje PK
+        integer id_remitente FK
+        integer id_destinatario FK
+        varchar asunto
+        text cuerpo
+        boolean leido
+        timestamptz fecha_envio
+    }
+    exposicion_motivos {
+        serial id_exposicion PK
+        integer id_matricula FK
+        text motivo
+        boolean aprobado
+    }
+    calendarios {
+        serial id_evento PK
+        varchar titulo
+        text descripcion
+        timestamptz fecha_inicio
+        varchar tipo_evento
+    }
+    constancias_estudio {
+        serial id_constancia PK
+        integer id_estudiante FK
+        varchar codigo_verificacion UK
+        text url_documento
+    }
+```
+
+---
+
+## 2. Diagrama de componentes + funciones
+
+```mermaid
+flowchart TD
+    subgraph Nucleo["core (servicios, guards, utils)"]
+        Auth["auth.service.ts<br/>login() · logout() · getToken()<br/>getUser() · isAuthenticated()<br/>restoreSession()"]
+        Toast["toast.service.ts<br/>show() · success() · error()<br/>warning() · info() · remove()"]
+        Offline["offline-storage.service.ts<br/>saveAsistencia() · getPendingAsistencias()<br/>markAsistenciaSynced()<br/>saveEvaluacion() · getPendingEvaluaciones()"]
+        Store["course-editor-store.service.ts<br/>cargarCurso() · guardarCurso() · undo()<br/>redo() · agregarModulo() · eliminarModulo()<br/>agregarLeccion() · eliminarLeccion()<br/>agregarItem() · actualizarItem()<br/>eliminarItem() · moverItem()<br/>seleccionarElemento()"]
+        AuthGuard["auth.guard.ts<br/>authGuard() → redirige a login si no hay sesión"]
+        RoleGuard["role.guard.ts<br/>roleGuard(roles) → valida rol/admin"]
+        Theme["theme.util.ts<br/>applyTheme() · loadTheme()"]
+    end
+
+    subgraph Layout["App shell"]
+        App["app (AppComponent)<br/>ngOnInit() · loadTheme() · toggleTheme()<br/>toggleMenu() · logout()<br/>filtra menú por rol"]
+    end
+
+    subgraph Features["features"]
+        Login["login.component.ts<br/>onLogin()"]
+        Dashboard["dashboard.component.ts<br/>ngOnInit() · loadDashboard()"]
+        Courses["courses.component.ts<br/>loadCursos() · crearCurso()<br/>abrirModal() · cerrarModal()<br/>inscribirEstudiante()<br/>cargarEstudiantesDisponibles()"]
+        Editor["course-editor.component.ts<br/>guardar() · deshacer() · rehacer()<br/>dropEnCanvas() · dropEnModulo()<br/>dropEnLeccion()<br/>agregarModulo() · agregarLeccion()<br/>agregarItem() · eliminarItem()<br/>seleccionarModulo() · iniciarEdicion()<br/>toggleTheme() · atajos teclado"]
+        Preview["course-preview.component.ts<br/>toggleLeccion() · iconoItem()<br/>abrirNotas() · guardarCalificacion()<br/>abrirEntrega() · enviarEntrega()<br/>onArchivoSeleccionado()"]
+        LessonCard["lesson-card.component.ts<br/>iconoItem() · labelTipo() · vencida()<br/>extraerEvaId() · sanitizeUrl()<br/>videoError()"]
+        Quiz["quiz-player.component.ts<br/>iniciarTimer() · formatoTiempo()<br/>seleccionarRespuesta()<br/>finalizarQuiz() · volver()"]
+        Attendance["attendance.component.ts<br/>loadClases() · loadSesionHoy()<br/>abrirAsistencia() · loadAlumnos()<br/>marcar() · cerrarAsistencia()<br/>syncNow() · puedeMarcar()"]
+        Reports["reports.component.ts<br/>onTipoChange() · loadReporte()<br/>descargarCSV()"]
+        Users["user-management.component.ts<br/>loadUsuarios() · search()<br/>goPage() · openCreateModal()<br/>openEditModal() · saveUser()<br/>deleteUser()"]
+        Grades["my-grades.component.ts<br/>cargarMisNotas()<br/>agruparNotasPorCurso()<br/>toggleNotasCurso() · notaFinal()"]
+    end
+
+    Auth --> Login
+    Auth --> App
+    Auth --> Dashboard
+    Auth --> Courses
+    Auth --> Users
+    App --> Auth
+    Store --> Editor
+    Store --> Preview
+    Offline --> Attendance
+    Offline --> Preview
+    Toast --> App
+    App --> Theme
+    Editor --> Theme
+    AuthGuard -.-> Login
+    AuthGuard -.-> Dashboard
+    RoleGuard -.-> Courses
+    RoleGuard -.-> Users
+    RoleGuard -.-> Attendance
+    RoleGuard -.-> Reports
+    Editor --> Preview
+    Preview --> LessonCard
+    Preview --> Quiz
+```
+
+---
+
+## 3. Solo componentes
+
+```mermaid
+flowchart TD
+    subgraph Core["core"]
+        Auth["auth.service.ts"]
+        Toast["toast.service.ts"]
+        Offline["offline-storage.service.ts"]
+        Store["course-editor-store.service.ts"]
+        AuthGuard["auth.guard.ts"]
+        RoleGuard["role.guard.ts"]
+        Theme["theme.util.ts"]
+    end
+
+    subgraph Shell["App shell"]
+        App["AppComponent"]
+    end
+
+    subgraph Features["features"]
+        Login["login"]
+        Dashboard["dashboard"]
+        Courses["courses"]
+        Editor["course-editor"]
+        Preview["course-preview"]
+        LessonCard["lesson-card"]
+        Quiz["quiz-player"]
+        Attendance["attendance"]
+        Reports["reports"]
+        Users["user-management"]
+        Grades["my-grades"]
+    end
+
+    App --> Login
+    App --> Dashboard
+    App --> Courses
+    App --> Editor
+    App --> Preview
+    App --> Quiz
+    App --> Attendance
+    App --> Reports
+    App --> Users
+    App --> Grades
+
+    Login --> Auth
+    Dashboard --> Auth
+    App --> Auth
+    App --> Toast
+    App --> Theme
+    Editor --> Theme
+
+    Editor --> Store
+    Editor --> Preview
+    Preview --> LessonCard
+    Preview --> Quiz
+
+    Attendance --> Offline
+    Preview --> Offline
+    Attendance --> Auth
+
+    AuthGuard --> Login
+    RoleGuard --> Courses
+    RoleGuard --> Users
+    RoleGuard --> Attendance
+    RoleGuard --> Reports
+```
+
+---
+
+## Notas
+
+- El diagrama de BD refleja las **28 tablas finales** (sin `tareas_curso`/`entregas_tarea`).
+- El editor canvas es el componente más pesado: delega toda su mutación al
+  `course-editor-store.service.ts` (undo/redo y atomicidad).
+- Los guards protegen rutas: `authGuard` para sesión, `roleGuard` para roles
+  (admin siempre pasa).
