@@ -323,8 +323,8 @@ export const obtenerResumenSemanal = async (_req: Request, res: Response): Promi
             ORDER BY dia_semana
         `);
 
-        const diasMap: Record<number, number> = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4 };
-        const semana = [0, 0, 0, 0, 0];
+        const diasMap: Record<number, number> = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 0: 6 };
+        const semana = [0, 0, 0, 0, 0, 0, 0];
 
         for (const row of result.rows) {
             const idx = diasMap[row.dia_semana];
@@ -359,9 +359,9 @@ export const obtenerMiAsistencia = async (req: Request, res: Response): Promise<
             ORDER BY dia_semana
         `, [idEstudiante]);
 
-        const diasMap: Record<number, number> = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4 };
-        const semana = [0, 0, 0, 0, 0];
-        const totalSemana = [0, 0, 0, 0, 0];
+        const diasMap: Record<number, number> = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 0: 6 };
+        const semana = [0, 0, 0, 0, 0, 0, 0];
+        const totalSemana = [0, 0, 0, 0, 0, 0, 0];
 
         for (const row of result.rows) {
             const idx = diasMap[row.dia_semana];

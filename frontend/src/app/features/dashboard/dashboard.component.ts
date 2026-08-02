@@ -196,8 +196,8 @@ export class DashboardComponent implements OnInit {
     this.chart = new Chart(canvas, {
       type: 'bar',
       data: {
-        labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'],
-        datasets: [{ label: 'Presentes', data: [0, 0, 0, 0, 0], backgroundColor: 'rgba(249,168,37,0.7)', borderColor: '#f9a825', borderWidth: 2, borderRadius: 6 }]
+        labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+        datasets: [{ label: 'Presentes', data: [0, 0, 0, 0, 0, 0, 0], backgroundColor: 'rgba(249,168,37,0.7)', borderColor: '#f9a825', borderWidth: 2, borderRadius: 6 }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
@@ -207,7 +207,7 @@ export class DashboardComponent implements OnInit {
     });
     this.http.get<any>(`${this.apiUrl}/asistencia/semanal`).subscribe({
       next: (res) => {
-        const data = res.data || [0, 0, 0, 0, 0];
+        const data = res.data || [0, 0, 0, 0, 0, 0, 0];
         if (this.chart) { this.chart.data.datasets[0].data = data; this.chart.update(); }
       },
       error: () => {}
