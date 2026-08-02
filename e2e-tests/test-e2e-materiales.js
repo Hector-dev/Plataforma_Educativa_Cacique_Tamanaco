@@ -239,6 +239,31 @@ const ASSETS = {
     }
 
     // ═══════════════════════════════════════════════════════════
+    // FASE 6.5: Docente/admin ve y descarga los materiales (preview)
+    // ═══════════════════════════════════════════════════════════
+    console.log('\n━━━ FASE 6.5: Docente visualiza materiales (preview) ━━━');
+
+    await page.goto(`${FRONTEND_URL}/cursos/${COURSE_ID}/preview`, { waitUntil: 'domcontentloaded', timeout: TIMEOUT });
+    await sleep(4000);
+
+    // Expandir todas las lecciones para que los items sean visibles
+    await page.evaluate(() => {
+      document.querySelectorAll('.lesson-header').forEach((h) => {
+        const chevron = h.querySelector('.lesson-chevron');
+        if (chevron && !chevron.classList.contains('rotated')) h.click();
+      });
+    });
+    await sleep(1500);
+
+    const botonesDocente = await page.evaluate(() => document.body.innerText);
+    record('Docente: botones de material visibles',
+      botonesDocente.includes('Ver video') || botonesDocente.includes('Ver imagen') || botonesDocente.includes('Descargar recurso'),
+      botonesDocente.includes('Descargar recurso') ? '📄 Descargar recurso presente' :
+        (botonesDocente.includes('Ver video') ? '🎬 Ver video presente' : '🖼️ Ver imagen presente'));
+
+    await takeScreenshot(page, 'm5b-docente-materiales');
+
+    // ═══════════════════════════════════════════════════════════
     // FASE 7: Estudiante visualiza los materiales
     // ═══════════════════════════════════════════════════════════
     console.log('\n━━━ FASE 7: Estudiante visualiza materiales ━━━');

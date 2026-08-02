@@ -86,6 +86,15 @@ export interface Leccion {
                 </div>
 
                 <div class="item-actions">
+                  @if (item.tipo === 'material' && item.urlRecurso) {
+                    @if (item.tipoRecurso === 'video') {
+                      <a class="btn-action btn-view" [href]="sanitizeUrl(item.urlRecurso)" target="_blank" rel="noopener noreferrer">🎬 Ver video</a>
+                    } @else if (item.tipoRecurso === 'imagen') {
+                      <a class="btn-action btn-view" [href]="sanitizeUrl(item.urlRecurso)" target="_blank" rel="noopener noreferrer">🖼️ Ver imagen</a>
+                    } @else {
+                      <a class="btn-action btn-view" [href]="sanitizeUrl(item.urlRecurso)" target="_blank" rel="noopener noreferrer">📄 Descargar recurso</a>
+                    }
+                  }
                   @if (isEstudiante) {
                     @if (item.tipo === 'quiz') {
                       <a class="btn-action btn-quiz" [routerLink]="['/quiz', extraerEvaId(item.id)]"
@@ -101,15 +110,6 @@ export interface Leccion {
                         <span class="badge-vencida">⛔ Fecha límite vencida</span>
                       } @else {
                         <button class="btn-action btn-entregar" (click)="abrirEntrega.emit(item)">📤 Entregar</button>
-                      }
-                    }
-                    @if (item.tipo === 'material' && item.urlRecurso) {
-                      @if (item.tipoRecurso === 'video') {
-                        <a class="btn-action btn-view" [href]="sanitizeUrl(item.urlRecurso)" target="_blank" rel="noopener noreferrer">🎬 Ver video</a>
-                      } @else if (item.tipoRecurso === 'imagen') {
-                        <a class="btn-action btn-view" [href]="sanitizeUrl(item.urlRecurso)" target="_blank" rel="noopener noreferrer">🖼️ Ver imagen</a>
-                      } @else {
-                        <a class="btn-action btn-view" [href]="sanitizeUrl(item.urlRecurso)" target="_blank" rel="noopener noreferrer">👁️ Ver recurso</a>
                       }
                     }
                   } @else {
