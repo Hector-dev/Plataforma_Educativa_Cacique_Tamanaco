@@ -4,7 +4,7 @@ import { RouterModule } from '@angular/router';
 
 export interface CursoItem {
   id: string;
-  tipo: 'tarea' | 'material' | 'evaluacion' | 'quiz';
+  tipo: 'material' | 'evaluacion' | 'quiz';
   titulo: string;
   descripcion?: string;
   porcentaje?: number;
@@ -75,7 +75,7 @@ export interface Leccion {
                     @if (item.porcentaje) {
                       <span class="item-meta">🎯 Peso: {{ item.porcentaje }}%</span>
                     }
-                    @if (item.tipo === 'tarea' && item.formatosPermitidos?.length) {
+                    @if (item.tipo === 'evaluacion' && item.formatosPermitidos?.length) {
                       <span class="item-meta">📄 Formatos: {{ item.formatosPermitidos!.join(', ') }}</span>
                     }
                     @if (item.fechaLimite) {
@@ -102,7 +102,7 @@ export interface Leccion {
                       <a class="btn-action btn-quiz" [routerLink]="['/quiz', extraerEvaId(item.id)]"
                          [queryParams]="cursoId ? { curso: cursoId } : undefined">🎯 Hacer quiz</a>
                     }
-                    @if (item.tipo === 'tarea') {
+                    @if (item.tipo === 'evaluacion') {
                       @if (item.entregada) {
                         <span class="badge-entregado">✅ Entregado</span>
                         @if (item.urlEntrega) {
@@ -118,9 +118,6 @@ export interface Leccion {
                       }
                     }
                   } @else {
-                    @if (item.tipo === 'tarea') {
-                      <button class="btn-action btn-notas" (click)="abrirNotas.emit(item)">📥 Ver entregas</button>
-                    }
                     @if (item.tipo === 'evaluacion' || item.tipo === 'quiz') {
                       <button class="btn-action btn-notas" (click)="abrirNotas.emit(item)">Ver notas</button>
                     }
@@ -189,7 +186,6 @@ export interface Leccion {
 
     .item-row { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.85rem; background: var(--bg-card); border: 1px solid var(--glass-border); border-left-width: 4px; border-radius: var(--radius-md); transition: transform var(--transition-fast), border-color var(--transition-fast); }
     .item-row:hover { transform: translateY(-1px); border-color: var(--glass-border); }
-    .item-tarea { border-left-color: #F59E0B; }
     .item-material { border-left-color: #3B82F6; }
     .item-evaluacion { border-left-color: #8B5CF6; }
     .item-quiz { border-left-color: #EC4899; }
@@ -200,7 +196,6 @@ export interface Leccion {
     .item-top { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .item-title { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
     .type-badge { padding: 0.15rem 0.55rem; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
-    .badge-tarea { background: rgba(245,158,11,0.15); color: #F59E0B; }
     .badge-material { background: rgba(59,130,246,0.15); color: #60A5FA; }
     .badge-evaluacion { background: rgba(139,92,246,0.15); color: #A78BFA; }
     .badge-quiz { background: rgba(236,72,153,0.15); color: #F472B6; }
@@ -269,7 +264,6 @@ export class LessonCardComponent {
 
   iconoItem(tipo: string): string {
     switch (tipo) {
-      case 'tarea': return '📝';
       case 'material': return '📎';
       case 'evaluacion': return '📋';
       case 'quiz': return '🎯';
@@ -279,7 +273,6 @@ export class LessonCardComponent {
 
   labelTipo(tipo: string): string {
     switch (tipo) {
-      case 'tarea': return 'Tarea';
       case 'material': return 'Material';
       case 'evaluacion': return 'Evaluación';
       case 'quiz': return 'Quiz';

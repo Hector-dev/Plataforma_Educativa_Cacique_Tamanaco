@@ -14,7 +14,6 @@ import {
   CursoItem,
   crearModuloVacio,
   crearLeccionVacia,
-  crearTareaVacia,
   crearMaterialVacio,
   crearEvaluacionVacia,
   crearQuizVacio,
@@ -284,7 +283,7 @@ export class CourseEditorStoreService {
 
   // ── Acciones: CRUD de ítems dentro de lecciones ──────────────
 
-  agregarItem(leccionId: string, moduloId: string | null, tipo: 'tarea' | 'material' | 'evaluacion' | 'quiz'): void {
+  agregarItem(leccionId: string, moduloId: string | null, tipo: 'material' | 'evaluacion' | 'quiz'): void {
     this.mutar(draft => {
       const leccion = this.encontrarLeccion(draft, leccionId, moduloId);
       if (!leccion) return;
@@ -292,7 +291,6 @@ export class CourseEditorStoreService {
       const orden = leccion.items.length + 1;
       let nuevoItem: CursoItem;
       switch (tipo) {
-        case 'tarea': nuevoItem = crearTareaVacia(orden); break;
         case 'material': nuevoItem = crearMaterialVacio(orden); break;
         case 'evaluacion': nuevoItem = crearEvaluacionVacia(orden); break;
         case 'quiz': nuevoItem = crearQuizVacio(orden); break;

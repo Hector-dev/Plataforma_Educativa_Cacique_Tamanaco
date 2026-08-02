@@ -41,7 +41,7 @@ interface QuizResultado {
 
 interface CursoItem {
   id: string;
-  tipo: 'tarea' | 'material' | 'evaluacion' | 'quiz';
+  tipo: 'material' | 'evaluacion' | 'quiz';
   titulo: string;
   descripcion?: string;
   porcentaje?: number;
@@ -100,7 +100,6 @@ interface CursoDocumento {
             <span class="stat-chip">📦 {{ resumen().modulos }} módulos</span>
             <span class="stat-chip">📚 {{ resumen().lecciones }} clases</span>
             <span class="stat-chip">🎯 {{ resumen().quizzes }} quizzes</span>
-            <span class="stat-chip">📝 {{ resumen().tareas }} tareas</span>
             <span class="stat-chip">📎 {{ resumen().materiales }} recursos</span>
           </div>
         </div>
@@ -213,58 +212,7 @@ interface CursoDocumento {
             } @else if (errorNotas()) {
               <p class="alert-error">{{ errorNotas() }}</p>
             } @else {
-              @if (modoTarea()) {
-                <div class="table-responsive">
-                  <table class="data-table">
-                    <thead>
-                      <tr>
-                        <th>Estudiante</th>
-                        <th>Cédula</th>
-                        <th>Formato</th>
-                        <th>Fecha de entrega</th>
-                        <th>Archivo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (fila of calificaciones(); track fila.id_estudiante) {
-                        <tr>
-                          <td>{{ fila.nombre_completo }}</td>
-                          <td>{{ fila.cedula }}</td>
-                          <td>
-                            @if (fila.id_entrega) {
-                              <span class="entrega-badge">{{ fila.formato_entrega }}</span>
-                            } @else {
-                              <span class="entrega-meta">—</span>
-                            }
-                          </td>
-                          <td>
-                            @if (fila.fecha_entrega) {
-                              <span class="entrega-meta">{{ fila.fecha_entrega | date:'short' }}</span>
-                            } @else {
-                              <span class="entrega-meta">—</span>
-                            }
-                          </td>
-                          <td>
-                            @if (urlDocumentoEntrega(fila)) {
-                              <a class="entrega-link" [href]="urlDocumentoEntrega(fila)!"
-                                target="_blank" rel="noopener">
-                                {{ fila.formato_entrega === 'URL' ? 'Abrir enlace' : 'Ver documento' }}
-                              </a>
-                            } @else {
-                              <span class="entrega-meta">Sin entrega</span>
-                            }
-                          </td>
-                        </tr>
-                      }
-                      @if (calificaciones().length === 0) {
-                        <tr>
-                          <td colspan="5" class="empty-cell">No hay estudiantes matriculados en este curso.</td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              } @else if (modoQuiz()) {
+              @if (modoQuiz()) {
                 <div class="table-responsive">
                   <table class="data-table">
                     <thead>
@@ -378,7 +326,7 @@ interface CursoDocumento {
               <button class="btn-close" (click)="cerrarEntrega()">✕</button>
             </div>
 
-            <p class="entrega-sub">Entrega tu tarea. Los formatos permitidos son:
+            <p class="entrega-sub">Entrega tu evaluación. Los formatos permitidos son:
               <strong>{{ formatosEntrega().join(', ') }}</strong>
             </p>
 
@@ -420,7 +368,7 @@ interface CursoDocumento {
             <div class="modal-actions">
               <button class="btn-outline" (click)="cerrarEntrega()">Cancelar</button>
               <button class="btn-primary" (click)="enviarEntrega()" [disabled]="enviandoEntrega()">
-                {{ enviandoEntrega() ? 'Enviando...' : 'Entregar tarea' }}
+                {{ enviandoEntrega() ? 'Enviando...' : 'Entregar' }}
               </button>
             </div>
           </div>
@@ -578,19 +526,17 @@ export class CoursePreviewComponent implements OnInit {
   readonly panelNotasAbierto = signal(false);
   readonly itemNotasSeleccionado = signal<CursoItem | null>(null);
   readonly modoQuiz = signal(false);
-  readonly modoTarea = signal(false);
   readonly cargandoNotas = signal(false);
   readonly errorNotas = signal<string | null>(null);
   readonly calificaciones = signal<CalificacionFila[]>([]);
   readonly resultadosQuiz = signal<QuizResultado[]>([]);
-  readonly idTareaActiva = signal<number | null>(null);
 
   readonly leccionesAbiertas = signal<Record<string, boolean>>({});
   private idEvaluacionActiva = signal<number | null>(null);
 
   readonly resumen = computed(() => {
     const doc = this.documento();
-    if (!doc) return { modulos: 0, lecciones: 0, quizzes: 0, tareas: 0, materiales: 0 };
+    if (!doc) return { modulos: 0, lecciones: 0, quizzes: 0, materiales: 0 };
     const todas = [
       ...(doc.modulos || []).flatMap(m => m.lecciones || []),
       ...(doc.leccionesSueltas || []),
@@ -600,7 +546,6 @@ export class CoursePreviewComponent implements OnInit {
       modulos: (doc.modulos || []).length,
       lecciones: todas.length,
       quizzes: items.filter(i => i.tipo === 'quiz').length,
-      tareas: items.filter(i => i.tipo === 'tarea').length,
       materiales: items.filter(i => i.tipo === 'material').length,
     };
   });
@@ -633,7 +578,7 @@ export class CoursePreviewComponent implements OnInit {
   }
 
   private cargarMisEntregas(): void {
-    this.http.get<{ success: boolean; data: { evaluaciones: any[]; tareas: any[] } }>(
+    this.http.get<{ success: boolean; data: { evaluaciones: any[] } }>(
       `${this.apiUrl}/entregas/mis-entregas`
     ).subscribe({
       next: (res) => {
@@ -641,9 +586,6 @@ export class CoursePreviewComponent implements OnInit {
         const mapa = new Map<string, { url: string | null; formato: string | null; fecha: string | null }>();
         for (const e of res.data.evaluaciones) {
           mapa.set(e.itemId, { url: e.contenido, formato: e.formato, fecha: e.fechaEntrega });
-        }
-        for (const t of res.data.tareas) {
-          mapa.set(t.itemId, { url: t.contenido, formato: t.formato, fecha: t.fechaEntrega });
         }
         this.entregaInfo.set(mapa);
         this.aplicarEntregas();
@@ -737,7 +679,6 @@ export class CoursePreviewComponent implements OnInit {
 
   iconoItem(tipo: string): string {
     switch (tipo) {
-      case 'tarea': return '📝';
       case 'material': return '📎';
       case 'evaluacion': return '📋';
       case 'quiz': return '🎯';
@@ -749,23 +690,10 @@ export class CoursePreviewComponent implements OnInit {
     this.itemNotasSeleccionado.set(item);
     this.panelNotasAbierto.set(true);
     this.modoQuiz.set(item.tipo === 'quiz');
-    this.modoTarea.set(item.tipo === 'tarea');
     this.cargandoNotas.set(true);
     this.errorNotas.set(null);
     this.calificaciones.set([]);
     this.resultadosQuiz.set([]);
-
-    if (item.tipo === 'tarea') {
-      const tarId = this.extraerIdTarea(item.id);
-      if (!tarId) {
-        this.errorNotas.set('No se pudo identificar la tarea');
-        this.cargandoNotas.set(false);
-        return;
-      }
-      this.idTareaActiva.set(tarId);
-      this.cargarEntregasTarea(tarId);
-      return;
-    }
 
     const evalId = this.extraerIdEvaluacion(item.id);
     if (!evalId) {
@@ -786,17 +714,10 @@ export class CoursePreviewComponent implements OnInit {
     this.panelNotasAbierto.set(false);
     this.itemNotasSeleccionado.set(null);
     this.idEvaluacionActiva.set(null);
-    this.idTareaActiva.set(null);
-    this.modoTarea.set(false);
   }
 
   private extraerIdEvaluacion(itemId: string): number | null {
     const match = itemId.match(/^eva_(\d+)$/);
-    return match ? parseInt(match[1], 10) : null;
-  }
-
-  private extraerIdTarea(itemId: string): number | null {
-    const match = itemId.match(/^tar_(\d+)$/);
     return match ? parseInt(match[1], 10) : null;
   }
 
@@ -823,25 +744,6 @@ export class CoursePreviewComponent implements OnInit {
       error: (err) => {
         this.cargandoNotas.set(false);
         this.errorNotas.set(err.error?.message || 'Error al cargar las calificaciones');
-      },
-    });
-  }
-
-  private cargarEntregasTarea(tarId: number): void {
-    this.http.get<{ success: boolean; data: CalificacionFila[] }>(
-      `${this.apiUrl}/entregas/tarea/${tarId}/entregas`
-    ).subscribe({
-      next: (res) => {
-        this.cargandoNotas.set(false);
-        if (res.success && res.data) {
-          this.calificaciones.set(res.data);
-        } else {
-          this.errorNotas.set('No se pudieron cargar las entregas de la tarea');
-        }
-      },
-      error: (err) => {
-        this.cargandoNotas.set(false);
-        this.errorNotas.set(err.error?.message || 'Error al cargar las entregas de la tarea');
       },
     });
   }
@@ -961,19 +863,14 @@ export class CoursePreviewComponent implements OnInit {
       return;
     }
 
-    const esTarea = item.tipo === 'tarea';
-    const idDestino = esTarea
-      ? this.extraerIdTarea(item.id)
-      : this.extraerIdEvaluacion(item.id);
+    const idDestino = this.extraerIdEvaluacion(item.id);
     if (!idDestino) {
-      this.errorEntrega.set('No se pudo identificar la tarea o el estudiante');
+      this.errorEntrega.set('No se pudo identificar la evaluación o el estudiante');
       return;
     }
 
-    const endpoint = esTarea
-      ? `${this.apiUrl}/entregas/tarea/${idDestino}`
-      : `${this.apiUrl}/entregas`;
-    const campoId = esTarea ? 'id_tarea_curso' : 'id_evaluacion';
+    const endpoint = `${this.apiUrl}/entregas`;
+    const campoId = 'id_evaluacion';
 
     const tipo = this.tipoEntrega();
     this.enviandoEntrega.set(true);

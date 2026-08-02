@@ -535,16 +535,7 @@ export const obtenerDocumentoCurso = async (req: Request, res: Response): Promis
             [id_curso]
         );
 
-        // 5. Obtener tareas_curso para todas las clases
-        const tareasResult = await query(
-            `SELECT tc.* FROM tareas_curso tc
-             JOIN clases c ON c.id_clase = tc.id_clase
-             WHERE c.id_curso = $1
-             ORDER BY tc.id_clase, tc.orden, tc.id_tarea_curso`,
-            [id_curso]
-        );
-
-        // 6. Obtener materiales_curso para todas las clases
+        // 5. Obtener materiales_curso para todas las clases
         const materialesResult = await query(
             `SELECT mc.* FROM materiales_curso mc
              JOIN clases c ON c.id_clase = mc.id_clase
@@ -566,7 +557,7 @@ export const obtenerDocumentoCurso = async (req: Request, res: Response): Promis
             evaluacionesConQuiz.add(q.id_evaluacion);
         }
 
-        // 7. Indexar evaluaciones, tareas y materiales por id_clase
+        // 7. Indexar evaluaciones y materiales por id_clase
         const evaluacionesPorClase: Record<number, any[]> = {};
         for (const ev of evaluacionesResult.rows) {
             if (!evaluacionesPorClase[ev.id_clase]) evaluacionesPorClase[ev.id_clase] = [];
@@ -579,20 +570,6 @@ export const obtenerDocumentoCurso = async (req: Request, res: Response): Promis
                 porcentaje: parseFloat(ev.porcentaje),
                 orden: parseFloat(ev.orden),
                 ...(tieneQuiz ? { tieneQuiz: true } : {}),
-            });
-        }
-
-        const tareasPorClase: Record<number, any[]> = {};
-        for (const tar of tareasResult.rows) {
-            if (!tareasPorClase[tar.id_clase]) tareasPorClase[tar.id_clase] = [];
-            tareasPorClase[tar.id_clase].push({
-                tipo: 'tarea' as const,
-                id: `tar_${tar.id_tarea_curso}`,
-                titulo: tar.titulo,
-                descripcion: tar.descripcion || '',
-                formatosPermitidos: tar.formatos_permitidos || ['PDF'],
-                fechaLimite: tar.fecha_limite ? new Date(tar.fecha_limite).toISOString() : null,
-                orden: parseFloat(tar.orden),
             });
         }
 
@@ -613,7 +590,6 @@ export const obtenerDocumentoCurso = async (req: Request, res: Response): Promis
         // 8. Función auxiliar para construir una lección a partir de una clase
         const buildLeccion = (clase: any) => {
             const items = [
-                ...(tareasPorClase[clase.id_clase] || []),
                 ...(evaluacionesPorClase[clase.id_clase] || []),
                 ...(materialesPorClase[clase.id_clase] || []),
             ].sort((a, b) => a.orden - b.orden);
@@ -866,49 +842,18 @@ export const guardarDocumentoCurso = async (req: Request, res: Response): Promis
             await client.query(`DELETE FROM clases WHERE id_curso = $1`, [id_curso]);
         }
 
-        // 4. Sincronizar tareas, evaluaciones y materiales dentro de cada clase
+        // 4. Sincronizar evaluaciones y materiales dentro de cada clase
         for (const { leccion: lec } of todasLasLecciones) {
             const id_clase = parseInt(lec.id.replace('lec_', ''), 10);
             const items = lec.items || [];
 
-            const idsTareasEnviadas: number[] = [];
             const idsEvalEnviadas: number[] = [];
             const idsMatEnviados: number[] = [];
 
             for (let j = 0; j < items.length; j++) {
                 const item = items[j];
 
-                if (item.tipo === 'tarea') {
-                    const id_tar = item.id && item.id.startsWith('tar_')
-                        ? parseInt(item.id.replace('tar_', ''), 10) : null;
-
-                    let tarResult;
-                    if (id_tar) {
-                        tarResult = await client.query(
-                            `UPDATE tareas_curso SET titulo = $1, descripcion = $2,
-                                 formatos_permitidos = $3, fecha_limite = $4, orden = $5
-                             WHERE id_tarea_curso = $6 AND id_clase = $7
-                             RETURNING id_tarea_curso`,
-                            [item.titulo, item.descripcion || null,
-                             item.formatosPermitidos || ['PDF'],
-                             item.fechaLimite || null, j + 1, id_tar, id_clase]
-                        );
-                        if (tarResult.rows.length > 0) idsTareasEnviadas.push(id_tar);
-                    }
-
-                    if (!id_tar || tarResult?.rows.length === 0) {
-                        tarResult = await client.query(
-                            `INSERT INTO tareas_curso (id_clase, titulo, descripcion, formatos_permitidos, fecha_limite, orden)
-                             VALUES ($1, $2, $3, $4, $5, $6)
-                             RETURNING id_tarea_curso`,
-                            [id_clase, item.titulo, item.descripcion || null,
-                             item.formatosPermitidos || ['PDF'],
-                             item.fechaLimite || null, j + 1]
-                        );
-                        idsTareasEnviadas.push(tarResult.rows[0].id_tarea_curso);
-                        item.id = `tar_${tarResult.rows[0].id_tarea_curso}`;
-                    }
-                } else if (item.tipo === 'evaluacion' || item.tipo === 'quiz') {
+                if (item.tipo === 'evaluacion' || item.tipo === 'quiz') {
                     const id_eval = item.id && (item.id.startsWith('eva_') || item.id.startsWith('qz_'))
                         ? parseInt(item.id.replace(/^(eva_|qz_)/, ''), 10) : null;
 
@@ -982,16 +927,7 @@ export const guardarDocumentoCurso = async (req: Request, res: Response): Promis
                 }
             }
 
-            // Limpiar tareas/evaluaciones/materiales huérfanos de esta clase
-            if (idsTareasEnviadas.length > 0) {
-                await client.query(
-                    `DELETE FROM tareas_curso WHERE id_clase = $1 AND id_tarea_curso != ALL($2::int[])`,
-                    [id_clase, idsTareasEnviadas]
-                );
-            } else {
-                await client.query(`DELETE FROM tareas_curso WHERE id_clase = $1`, [id_clase]);
-            }
-
+            // Limpiar evaluaciones/materiales huérfanos de esta clase
             if (idsEvalEnviadas.length > 0) {
                 await client.query(
                     `DELETE FROM evaluaciones WHERE id_clase = $1 AND id_evaluacion != ALL($2::int[])`,

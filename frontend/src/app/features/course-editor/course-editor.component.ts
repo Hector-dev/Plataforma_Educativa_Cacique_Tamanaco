@@ -288,7 +288,6 @@ export class CourseEditorComponent implements OnInit {
 
   getIconoItem(tipo: string): string {
     switch (tipo) {
-      case 'tarea': return '📝';
       case 'material': return '📎';
       case 'evaluacion': return '📋';
       case 'quiz': return '🎯';
@@ -298,7 +297,6 @@ export class CourseEditorComponent implements OnInit {
 
   getColorItem(tipo: string): string {
     switch (tipo) {
-      case 'tarea': return '#F59E0B';
       case 'material': return '#3B82F6';
       case 'evaluacion': return '#8B5CF6';
       case 'quiz': return '#EC4899';

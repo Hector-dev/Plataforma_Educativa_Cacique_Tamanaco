@@ -37,6 +37,8 @@ services:
       - ./init-scripts/05_e2e_seed.sql:/docker-entrypoint-initdb.d/05_e2e_seed.sql
       - ./init-scripts/05_migracion_fecha_asistencia.sql:/docker-entrypoint-initdb.d/05_migracion_fecha_asistencia.sql
       - ./init-scripts/06_sesiones_asistencia.sql:/docker-entrypoint-initdb.d/06_sesiones_asistencia.sql
+      - ./init-scripts/07_entregas_tarea.sql:/docker-entrypoint-initdb.d/07_entregas_tarea.sql
+      - ./init-scripts/08_migrar_tareas_a_evaluaciones.sql:/docker-entrypoint-initdb.d/08_migrar_tareas_a_evaluaciones.sql
     ports:
       - "5432:5432"
     healthcheck:

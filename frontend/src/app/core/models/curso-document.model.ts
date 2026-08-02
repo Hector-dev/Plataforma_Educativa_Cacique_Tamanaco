@@ -4,7 +4,7 @@
 
 // --- Tipos de ítems del canvas ---
 
-export type CursoItemType = 'tarea' | 'material' | 'evaluacion' | 'quiz';
+export type CursoItemType = 'material' | 'evaluacion' | 'quiz';
 
 export type TipoRecurso = 'video' | 'documento' | 'enlace' | 'imagen';
 
@@ -13,16 +13,10 @@ export type FormatoPermitido = 'PDF' | 'WORD' | 'URL';
 // --- Ítems hijos dentro de una lección ---
 
 export interface CursoItemBase {
-  id: string;          // 'tar_xxx', 'mat_xxx', 'eva_xxx'
+  id: string;          // 'mat_xxx', 'eva_xxx'
   titulo: string;
   descripcion: string;
   orden: number;
-}
-
-export interface TareaItem extends CursoItemBase {
-  tipo: 'tarea';
-  formatosPermitidos: FormatoPermitido[];
-  fechaLimite: string | null;
 }
 
 export interface MaterialItem extends CursoItemBase {
@@ -42,7 +36,7 @@ export interface QuizItem extends CursoItemBase {
   tieneQuiz: boolean;  // flag para saber si ya se creó el quiz en BD
 }
 
-export type CursoItem = TareaItem | MaterialItem | EvaluacionItem | QuizItem;
+export type CursoItem = MaterialItem | EvaluacionItem | QuizItem;
 
 // --- Lección (clase dentro del curso) ---
 // NOTA: Las propiedades usan camelCase (convención TypeScript).
@@ -109,18 +103,6 @@ export function crearLeccionVacia(orden: number): Leccion {
     duracionMinutos: 45,
     orden,
     items: [],
-  };
-}
-
-export function crearTareaVacia(orden: number): TareaItem {
-  return {
-    tipo: 'tarea',
-    id: crypto.randomUUID ? crypto.randomUUID() : `tar_tmp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    titulo: 'Nueva Tarea',
-    descripcion: '',
-    formatosPermitidos: ['PDF'],
-    fechaLimite: null,
-    orden,
   };
 }
 

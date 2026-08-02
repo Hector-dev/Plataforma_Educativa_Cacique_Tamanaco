@@ -149,8 +149,6 @@
                   </div>
                 </div>
                 <div class="leccion-actions">
-                  <button class="btn-icon-sm" (click)="agregarItem(leccion.id, modulo.id, 'tarea')"
-                          title="Agregar tarea">📝</button>
                   <button class="btn-icon-sm" (click)="agregarItem(leccion.id, modulo.id, 'material')"
                           title="Agregar material">📎</button>
                   <button class="btn-icon-sm" (click)="agregarItem(leccion.id, modulo.id, 'evaluacion')"
@@ -376,15 +374,7 @@
         </div>
         }
 
-        <!-- Propiedades de tarea -->
-        @if (elem.tipo === 'item' && $any(elem.datos).tipo === 'tarea') {
-        <div class="inspector-field">
-          <label>Fecha límite</label>
-          <input type="date" [value]="$any(elem.datos).fechaLimite ? ($any(elem.datos).fechaLimite | slice:0:10) : ''"
-                 (input)="actualizarPropiedad(elem, 'fechaLimite', $any($event.target).value)"
-                 placeholder="AAAA-MM-DD" />
-        </div>
-        }
+        <!-- Propiedades de tarea eliminadas: solo quedan evaluaciones -->
       </div>
       } @else {
       <div class="inspector-empty">
