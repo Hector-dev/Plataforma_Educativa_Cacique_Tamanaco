@@ -20,6 +20,7 @@ export class App implements OnInit {
   isDark = true;
   user: any = null;
   sidebarCollapsed = false;
+  mobileOpen = false;
   isLoginRoute = true;
 
   menuItems = [
@@ -60,6 +61,7 @@ export class App implements OnInit {
     this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe((e: any) => {
       this.isStandaloneRoute = this.isStandalonePath(e.urlAfterRedirects);
       this.isLoginRoute = this.isLoginPath(e.urlAfterRedirects);
+      this.mobileOpen = false;
       this.syncAuthState();
     });
   }
@@ -84,6 +86,14 @@ export class App implements OnInit {
     this.isDark = !this.isDark;
     document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
     localStorage.setItem('cacique_theme', this.isDark ? 'dark' : 'light');
+  }
+
+  toggleMenu() {
+    this.mobileOpen = !this.mobileOpen;
+  }
+
+  closeMenu() {
+    this.mobileOpen = false;
   }
 
   private loadTheme() {

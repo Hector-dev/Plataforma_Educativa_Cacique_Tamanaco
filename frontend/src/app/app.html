@@ -29,7 +29,26 @@
   </button>
 
   <div class="app-container">
-    <aside class="sidebar" [class.collapsed]="sidebarCollapsed"
+    <header class="mobile-topbar" role="banner">
+      <button class="hamburger-btn" (click)="toggleMenu()" aria-label="Abrir menú"
+              [attr.aria-expanded]="mobileOpen">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
+      <span class="mobile-brand" aria-hidden="true">📘</span>
+      <h1 class="mobile-title">Cacique Tamanaco</h1>
+      <button class="theme-toggle mobile-theme-toggle" (click)="toggleTheme()"
+              [attr.aria-label]="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
+        {{ isDark ? '☀️' : '🌙' }}
+      </button>
+    </header>
+
+    @if (mobileOpen) {
+    <div class="sidebar-backdrop" (click)="closeMenu()" (keydown.escape)="closeMenu()" aria-hidden="true"></div>
+    }
+
+    <aside class="sidebar" [class.collapsed]="sidebarCollapsed" [class.mobile-open]="mobileOpen"
            role="navigation" aria-label="Navegación principal">
       <div class="sidebar-header" (click)="sidebarCollapsed = !sidebarCollapsed"
            (keydown.enter)="sidebarCollapsed = !sidebarCollapsed" tabindex="0" role="button"
@@ -39,7 +58,7 @@
       </div>
       <nav class="sidebar-nav">
         @for (item of filteredMenuItems; track item.path) {
-        <a [routerLink]="item.path"
+        <a [routerLink]="item.path" (click)="closeMenu()"
            routerLinkActive="active" [routerLinkActiveOptions]="{exact: item.path === '/dashboard'}"
            class="nav-item" tabindex="0" role="menuitem">
           <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
