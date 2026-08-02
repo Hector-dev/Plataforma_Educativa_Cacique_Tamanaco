@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco/produccion/frontend/public/icons/icon-192x192.png" alt="Logo" width="120" />
+  <img src="https://raw.githubusercontent.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco/v1.0/frontend/public/icons/logo.png" alt="Logo" width="120" />
 </p>
 
-<h1 align="center">📘 Cacique Tamanaco</h1>
+<h1 align="center">Cacique Tamanaco</h1>
 <h3 align="center">Plataforma Educativa Móvil · Offline-First · PWA</h3>
 
 <p align="center">
@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/docker-27-2496ED?logo=docker" alt="Docker 27" />
   <img src="https://img.shields.io/badge/express-4.x-000000?logo=express" alt="Express 4.x" />
   <img src="https://img.shields.io/badge/pwa-ready-5A0FC8?logo=pwa" alt="PWA Ready" />
-  <img src="https://img.shields.io/badge/v0.1-FF6F00?logo=git" alt="v0.1" />
+  <img src="https://img.shields.io/badge/v1.0-FF6F00?logo=git" alt="v1.0" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License MIT" />
 </p>
 
@@ -41,14 +41,14 @@
 |-----------|----------------|
 | 👥 **Usuarios** | CRUD completo, roles (Admin/Docente/Estudiante), JWT auth, bcrypt |
 | 📖 **Cursos** | Creación, matriculación, estructura modular con clases |
-| ✏️ **Editor Visual** | Canvas drag & drop, módulos, lecciones, tareas, quizzes, materiales |
+| ✏️ **Editor Visual** | Canvas drag & drop, módulos, lecciones, evaluaciones, quizzes, materiales |
 | 🎯 **Quizzes** | Opción múltiple, verdadero/falso, tiempo límite, calificación automática |
 | 📝 **Entregas** | Subida de archivos (PDF/Word), enlaces URL, calificación docente |
 | ✅ **Asistencia** | Registro presente/ausente/justificado, soporte offline |
 | 📊 **Reportes** | Rendimiento por curso, asistencia general, gráficos Chart.js, exportación CSV |
 | 🔒 **Documentos** | Cifrado AES-256-CBC para documentos personales sensibles |
 | 📴 **Offline-First** | IndexedDB (Dexie.js), sincronización masiva al reconectar |
-| 🌓 **Tema** | Claro/Oscuro persistente |
+| 🌓 **Tema** | Claro/Oscuro persistente, toggle unificado (`theme.util.ts`) |
 | 📱 **Responsive** | Sidebar colapsable, off-canvas móvil, inspector overlay, hamburger menu |
 | 🐳 **Docker** | Multi-stage builds, healthchecks, init scripts automáticos |
 
@@ -92,8 +92,8 @@ graph TB
 ### Opción A: Docker (recomendado) — **Sin necesidad de .env**
 
 ```bash
-# 1. Clonar rama v0.1
-git clone -b v0.1 https://github.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco.git
+# 1. Clonar rama v1.0
+git clone -b v1.0 https://github.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco.git
 cd Plataforma_Educativa_Cacique_Tamanaco
 
 # 2. Construir y levantar (SIN .env — secrets se auto-generan)
@@ -117,7 +117,7 @@ curl http://localhost/api/health
 # Requiere Node.js 20+ y PostgreSQL 16 instalados
 
 # 1. Clonar
-git clone -b v0.1 https://github.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco.git
+git clone -b v1.0 https://github.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco.git
 cd Plataforma_Educativa_Cacique_Tamanaco
 
 # 2. Crear .env con conexión a tu PostgreSQL local
@@ -198,9 +198,10 @@ Docker dedicado, aislado del host.
 │   ├── Dockerfile
 │   ├── nginx.conf              # Proxy reverso → backend
 │   ├── src/app/
-│   │   ├── core/               # Servicios, interceptors, modelos
+│   │   ├── core/               # Servicios, interceptores, modelos, utils
+│   │   │   └── utils/          # theme.util.ts (tema oscuro/claro unificado)
 │   │   └── features/           # Course editor, Quiz player, Setup Wizard ⭐
-│   └── public/icons/           # PWA icons
+│   └── public/                 # favicon.ico, manifest.webmanifest, icons/
 │
 ├── init-scripts/               # SQL auto-ejecutables (DDL + DML + migrations)
 │   ├── 01_ddl.sql              # Esquema de tablas
@@ -209,7 +210,9 @@ Docker dedicado, aislado del host.
 │   ├── 04_quiz.sql             # Sistema de quizzes
 │   ├── 05_e2e_seed.sql         # Datos demo para pruebas E2E
 │   ├── 05_migracion_fecha_asistencia.sql
-│   └── 06_sesiones_asistencia.sql # Migración asistencia por sesiones diarias
+│   ├── 06_sesiones_asistencia.sql # Migración asistencia por sesiones diarias
+│   ├── 07_entregas_tarea.sql   # Tablas de entregas (migrada en 08)
+│   └── 08_migrar_tareas_a_evaluaciones.sql # ⭐ Tareas → evaluaciones
 │
 ├── e2e-tests/                  # Tests end-to-end (Playwright)
 ├── offline-package/            # Paquete para despliegue sin internet
@@ -244,6 +247,12 @@ docker compose down -v
 # Reconstruir después de cambios
 docker compose up --build -d
 
+# Etiquetar y publicar imágenes en Docker Hub
+docker tag cacique-backend:latest <usuario>/cacique-backend:latest
+docker tag cacique-frontend:latest <usuario>/cacique-frontend:latest
+docker push <usuario>/cacique-backend:latest
+docker push <usuario>/cacique-frontend:latest
+
 # Backup de BD (reemplazar USER por el de tu .env, o postgres si usas defaults)
 docker exec cacique-postgres pg_dump -U postgres cacique_tamanaco_db > backup.sql
 
@@ -270,13 +279,13 @@ CRUD completo con roles: **Administrador**, **Docente**, **Estudiante**. Filtros
 Cursos con estructura modular expansible. Cada curso contiene clases con evaluaciones, materiales y recursos. Matriculación de estudiantes.
 
 ### ✏️ Editor Visual Canvas
-Editor drag-and-drop para estructurar cursos visualmente. Módulos → Lecciones → Tareas/Quizzes/Materiales. Inspector lateral de propiedades. Soporte para undo/redo.
+Editor drag-and-drop para estructurar cursos visualmente. Módulos → Lecciones → Evaluaciones/Quizzes/Materiales. Inspector lateral de propiedades. Soporte para undo/redo.
 
 ### 🎯 Sistema de Quizzes
 Creación de quizzes con preguntas de opción múltiple o verdadero/falso. Tiempo límite configurable. Calificación automática. Tracking de intentos por estudiante.
 
 ### 📝 Entregas y Calificaciones
-Subida de tareas en PDF/Word o mediante enlace URL. Calificación con notas preliminares y definitivas. Escala 0-20 puntos.
+Subida de entregas de evaluaciones en PDF/Word o mediante enlace URL. Calificación con notas preliminares y definitivas. Escala 0-20 puntos.
 
 ### ✅ Control de Asistencia
 Registro diario con estados: presente, ausente, justificado. Funciona sin conexión — sincroniza al reconectar.
