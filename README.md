@@ -31,6 +31,7 @@
 - [📂 Estructura del proyecto](#-estructura-del-proyecto)
 - [🛠️ Comandos útiles](#️-comandos-útiles)
 - [📱 Funcionalidades](#-funcionalidades)
+- [📊 Diagramas](#-diagramas)
 - [📄 Licencia](#-licencia)
 
 ---
@@ -295,6 +296,176 @@ Registro diario con estados: presente, ausente, justificado. Funciona sin conexi
 - **Rendimiento por curso**: promedios, entregas completadas
 - **Asistencia por género**: distribución demográfica
 - **Exportación CSV** descargable
+
+---
+
+## 📊 Diagramas
+
+> Diagramas Mermaid generados desde el esquema real (`init-scripts/`) y los
+> componentes del frontend (`frontend/src/app/`). Versión completa en
+> [`docs/DIAGRAMAS.md`](docs/DIAGRAMAS.md).
+
+### Base de datos
+
+```mermaid
+erDiagram
+    usuarios ||--o{ cursos : "docente (id_docente)"
+    usuarios ||--o{ documentos_personales : "id_usuario"
+    usuarios ||--o{ curso_estudiantes : "estudiante"
+    cursos ||--o{ curso_estudiantes : "id_curso"
+    usuarios ||--o{ matriculas : "id_estudiante"
+    cursos ||--o{ matriculas : "id_curso"
+    matriculas ||--o{ exposicion_motivos : "id_matricula"
+    cursos ||--o{ clases : "id_curso"
+    cursos ||--o{ materiales : "id_curso"
+    cursos ||--o{ modulos : "id_curso"
+    modulos ||--o{ clases : "id_modulo (opcional)"
+    clases ||--o{ evaluaciones : "id_clase"
+    clases ||--o{ materiales_curso : "id_clase"
+    clases ||--o{ sesiones_asistencia : "id_clase"
+    clases ||--o{ asistencias_alumnos : "id_clase"
+    evaluaciones ||--o{ entregas_evaluacion : "id_evaluacion"
+    evaluaciones ||--o{ calificaciones : "id_evaluacion"
+    evaluaciones ||--o{ quizzes : "id_evaluacion"
+    usuarios ||--o{ entregas_evaluacion : "id_estudiante"
+    usuarios ||--o{ calificaciones : "id_estudiante"
+    materiales ||--o{ progreso_material : "id_material"
+    usuarios ||--o{ progreso_material : "id_estudiante"
+    usuarios ||--o{ asistencias_alumnos : "id_estudiante"
+    sesiones_asistencia ||--o{ asistencias_alumnos : "id_sesion"
+    usuarios ||--o{ asistencias_trabajadores : "id_trabajador"
+    usuarios ||--o{ mensajes : "id_remitente"
+    usuarios ||--o{ mensajes : "id_destinatario"
+    usuarios ||--o{ constancias_estudio : "id_estudiante"
+    quizzes ||--o{ quiz_preguntas : "id_quiz"
+    quiz_preguntas ||--o{ quiz_opciones : "id_pregunta"
+    quizzes ||--o{ quiz_intentos : "id_quiz"
+    usuarios ||--o{ quiz_intentos : "id_estudiante"
+    quiz_intentos ||--o{ quiz_respuestas : "id_intento"
+    quiz_preguntas ||--o{ quiz_respuestas : "id_pregunta"
+```
+
+### Componentes y sus funciones
+
+```mermaid
+flowchart TD
+    subgraph Nucleo["core (servicios, guards, utils)"]
+        Auth["auth.service.ts<br/>login() · logout() · getToken()<br/>getUser() · isAuthenticated()<br/>restoreSession()"]
+        Toast["toast.service.ts<br/>show() · success() · error()<br/>warning() · info() · remove()"]
+        Offline["offline-storage.service.ts<br/>saveAsistencia() · getPendingAsistencias()<br/>markAsistenciaSynced()<br/>saveEvaluacion() · getPendingEvaluaciones()"]
+        Store["course-editor-store.service.ts<br/>cargarCurso() · guardarCurso() · undo()<br/>redo() · agregarModulo() · eliminarModulo()<br/>agregarLeccion() · eliminarLeccion()<br/>agregarItem() · actualizarItem()<br/>eliminarItem() · moverItem()<br/>seleccionarElemento()"]
+        AuthGuard["auth.guard.ts<br/>authGuard() → redirige a login si no hay sesión"]
+        RoleGuard["role.guard.ts<br/>roleGuard(roles) → valida rol/admin"]
+        Theme["theme.util.ts<br/>applyTheme() · loadTheme()"]
+    end
+
+    subgraph Layout["App shell"]
+        App["app (AppComponent)<br/>ngOnInit() · loadTheme() · toggleTheme()<br/>toggleMenu() · logout()<br/>filtra menú por rol"]
+    end
+
+    subgraph Features["features"]
+        Login["login.component.ts<br/>onLogin()"]
+        Dashboard["dashboard.component.ts<br/>ngOnInit() · loadDashboard()"]
+        Courses["courses.component.ts<br/>loadCursos() · crearCurso()<br/>abrirModal() · cerrarModal()<br/>inscribirEstudiante()<br/>cargarEstudiantesDisponibles()"]
+        Editor["course-editor.component.ts<br/>guardar() · deshacer() · rehacer()<br/>dropEnCanvas() · dropEnModulo()<br/>dropEnLeccion()<br/>agregarModulo() · agregarLeccion()<br/>agregarItem() · eliminarItem()<br/>seleccionarModulo() · iniciarEdicion()<br/>toggleTheme() · atajos teclado"]
+        Preview["course-preview.component.ts<br/>toggleLeccion() · iconoItem()<br/>abrirNotas() · guardarCalificacion()<br/>abrirEntrega() · enviarEntrega()<br/>onArchivoSeleccionado()"]
+        LessonCard["lesson-card.component.ts<br/>iconoItem() · labelTipo() · vencida()<br/>extraerEvaId() · sanitizeUrl()<br/>videoError()"]
+        Quiz["quiz-player.component.ts<br/>iniciarTimer() · formatoTiempo()<br/>seleccionarRespuesta()<br/>finalizarQuiz() · volver()"]
+        Attendance["attendance.component.ts<br/>loadClases() · loadSesionHoy()<br/>abrirAsistencia() · loadAlumnos()<br/>marcar() · cerrarAsistencia()<br/>syncNow() · puedeMarcar()"]
+        Reports["reports.component.ts<br/>onTipoChange() · loadReporte()<br/>descargarCSV()"]
+        Users["user-management.component.ts<br/>loadUsuarios() · search()<br/>goPage() · openCreateModal()<br/>openEditModal() · saveUser()<br/>deleteUser()"]
+        Grades["my-grades.component.ts<br/>cargarMisNotas()<br/>agruparNotasPorCurso()<br/>toggleNotasCurso() · notaFinal()"]
+    end
+
+    Auth --> Login
+    Auth --> App
+    Auth --> Dashboard
+    Auth --> Courses
+    Auth --> Users
+    App --> Auth
+    Store --> Editor
+    Store --> Preview
+    Offline --> Attendance
+    Offline --> Preview
+    Toast --> App
+    App --> Theme
+    Editor --> Theme
+    AuthGuard -.-> Login
+    AuthGuard -.-> Dashboard
+    RoleGuard -.-> Courses
+    RoleGuard -.-> Users
+    RoleGuard -.-> Attendance
+    RoleGuard -.-> Reports
+    Editor --> Preview
+    Preview --> LessonCard
+    Preview --> Quiz
+```
+
+### Solo componentes
+
+```mermaid
+flowchart TD
+    subgraph Core["core"]
+        Auth["auth.service.ts"]
+        Toast["toast.service.ts"]
+        Offline["offline-storage.service.ts"]
+        Store["course-editor-store.service.ts"]
+        AuthGuard["auth.guard.ts"]
+        RoleGuard["role.guard.ts"]
+        Theme["theme.util.ts"]
+    end
+
+    subgraph Shell["App shell"]
+        App["AppComponent"]
+    end
+
+    subgraph Features["features"]
+        Login["login"]
+        Dashboard["dashboard"]
+        Courses["courses"]
+        Editor["course-editor"]
+        Preview["course-preview"]
+        LessonCard["lesson-card"]
+        Quiz["quiz-player"]
+        Attendance["attendance"]
+        Reports["reports"]
+        Users["user-management"]
+        Grades["my-grades"]
+    end
+
+    App --> Login
+    App --> Dashboard
+    App --> Courses
+    App --> Editor
+    App --> Preview
+    App --> Quiz
+    App --> Attendance
+    App --> Reports
+    App --> Users
+    App --> Grades
+
+    Login --> Auth
+    Dashboard --> Auth
+    App --> Auth
+    App --> Toast
+    App --> Theme
+    Editor --> Theme
+
+    Editor --> Store
+    Editor --> Preview
+    Preview --> LessonCard
+    Preview --> Quiz
+
+    Attendance --> Offline
+    Preview --> Offline
+    Attendance --> Auth
+
+    AuthGuard --> Login
+    RoleGuard --> Courses
+    RoleGuard --> Users
+    RoleGuard --> Attendance
+    RoleGuard --> Reports
+```
 
 ---
 
