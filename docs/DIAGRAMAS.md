@@ -22,11 +22,11 @@ Diagramas Mermaid generados a partir del esquema real de la base de datos
 flowchart LR
     subgraph LMS["SISTEMA LMS / SGA"]
         direction LR
-        M1["1. USUARIOS Y COMUNICACIÓN<br/>usuarios · documentos_personales<br/>asistencias_trabajadores"]
-        M2["2. ESTRUCTURA ACADÉMICA<br/>cursos · modulos · clases<br/>materiales · materiales_curso"]
-        M3["3. MATRÍCULA Y TRÁMITES<br/>matriculas · curso_estudiantes<br/>exposicion_motivos · constancias_estudio"]
-        M4["4. EVALUACIONES Y QUIZZES<br/>evaluaciones · entregas_evaluacion<br/>calificaciones · quizzes + respuestas"]
-        M5["5. SEGUIMIENTO Y ASISTENCIA<br/>sesiones_asistencia · asistencias_alumnos<br/>asistencias_trabajadores · progreso_material"]
+        M1["1. USUARIOS Y COMUNICACION<br/>usuarios - documentos_personales<br/>asistencias_trabajadores"]
+        M2["2. ESTRUCTURA ACADEMICA<br/>cursos - modulos - clases<br/>materiales - materiales_curso"]
+        M3["3. MATRICULA Y TRAMITES<br/>matriculas - curso_estudiantes<br/>exposicion_motivos - constancias_estudio"]
+        M4["4. EVALUACIONES Y QUIZZES<br/>evaluaciones - entregas_evaluacion<br/>calificaciones - quizzes + respuestas"]
+        M5["5. SEGUIMIENTO Y ASISTENCIA<br/>sesiones_asistencia - asistencias_alumnos<br/>asistencias_trabajadores - progreso_material"]
     end
     M1 <--> M2
     M2 <--> M3
@@ -187,7 +187,7 @@ erDiagram
     quizzes ||--o{ quiz_intentos : "registra"
     usuarios ||--o{ quiz_intentos : "inicia"
     quiz_intentos ||--o{ quiz_respuestas : "guarda"
-    quiz_preguntas ||--o{ quiz_respuestas : "evalúa"
+    quiz_preguntas ||--o{ quiz_respuestas : "evalua"
 
     evaluaciones {
         serial id_evaluacion PK
@@ -313,18 +313,13 @@ erDiagram
 
 ```mermaid
 erDiagram
-    clases ||--o{ evaluaciones : "contiene"
     evaluaciones ||--o{ entregas_evaluacion : "genera"
     evaluaciones ||--o{ calificaciones : "asigna"
     evaluaciones ||--o{ quizzes : "implementa"
-    usuarios ||--o{ entregas_evaluacion : "realiza"
-    usuarios ||--o{ calificaciones : "recibe"
-
     quizzes ||--o{ quiz_preguntas : "posee"
     quiz_preguntas ||--o{ quiz_opciones : "ofrece"
     quizzes ||--o{ quiz_intentos : "registra"
-    usuarios ||--o{ quiz_intentos : "ejecuta"
-    quiz_intentos ||--o{ quiz_respuestas : "contiene"
+    quiz_intentos ||--o{ quiz_respuestas : "guarda"
     quiz_preguntas ||--o{ quiz_respuestas : "valida"
 ```
 
@@ -346,65 +341,9 @@ erDiagram
 
 ---
 
-## 2. Diagrama de componentes + funciones
+## 2. Diagrama de componentes
 
-```mermaid
-flowchart TD
-    subgraph Nucleo["core (servicios, guards, utils)"]
-        Auth["auth.service.ts<br/>login() · logout() · getToken()<br/>getUser() · isAuthenticated()<br/>restoreSession()"]
-        Toast["toast.service.ts<br/>show() · success() · error()<br/>warning() · info() · remove()"]
-        Offline["offline-storage.service.ts<br/>saveAsistencia() · getPendingAsistencias()<br/>markAsistenciaSynced()<br/>saveEvaluacion() · getPendingEvaluaciones()"]
-        Store["course-editor-store.service.ts<br/>cargarCurso() · guardarCurso() · undo()<br/>redo() · agregarModulo() · eliminarModulo()<br/>agregarLeccion() · eliminarLeccion()<br/>agregarItem() · actualizarItem()<br/>eliminarItem() · moverItem()<br/>seleccionarElemento()"]
-        AuthGuard["auth.guard.ts<br/>authGuard() → redirige a login si no hay sesión"]
-        RoleGuard["role.guard.ts<br/>roleGuard(roles) → valida rol/admin"]
-        Theme["theme.util.ts<br/>applyTheme() · loadTheme()"]
-    end
-
-    subgraph Layout["App shell"]
-        App["app (AppComponent)<br/>ngOnInit() · loadTheme() · toggleTheme()<br/>toggleMenu() · logout()<br/>filtra menú por rol"]
-    end
-
-    subgraph Features["features"]
-        Login["login.component.ts<br/>onLogin()"]
-        Dashboard["dashboard.component.ts<br/>ngOnInit() · loadDashboard()"]
-        Courses["courses.component.ts<br/>loadCursos() · crearCurso()<br/>abrirModal() · cerrarModal()<br/>inscribirEstudiante()<br/>cargarEstudiantesDisponibles()"]
-        Editor["course-editor.component.ts<br/>guardar() · deshacer() · rehacer()<br/>dropEnCanvas() · dropEnModulo()<br/>dropEnLeccion()<br/>agregarModulo() · agregarLeccion()<br/>agregarItem() · eliminarItem()<br/>seleccionarModulo() · iniciarEdicion()<br/>toggleTheme() · atajos teclado"]
-        Preview["course-preview.component.ts<br/>toggleLeccion() · iconoItem()<br/>abrirNotas() · guardarCalificacion()<br/>abrirEntrega() · enviarEntrega()<br/>onArchivoSeleccionado()"]
-        LessonCard["lesson-card.component.ts<br/>iconoItem() · labelTipo() · vencida()<br/>extraerEvaId() · sanitizeUrl()<br/>videoError()"]
-        Quiz["quiz-player.component.ts<br/>iniciarTimer() · formatoTiempo()<br/>seleccionarRespuesta()<br/>finalizarQuiz() · volver()"]
-        Attendance["attendance.component.ts<br/>loadClases() · loadSesionHoy()<br/>abrirAsistencia() · loadAlumnos()<br/>marcar() · cerrarAsistencia()<br/>syncNow() · puedeMarcar()"]
-        Reports["reports.component.ts<br/>onTipoChange() · loadReporte()<br/>descargarCSV()"]
-        Users["user-management.component.ts<br/>loadUsuarios() · search()<br/>goPage() · openCreateModal()<br/>openEditModal() · saveUser()<br/>deleteUser()"]
-        Grades["my-grades.component.ts<br/>cargarMisNotas()<br/>agruparNotasPorCurso()<br/>toggleNotasCurso() · notaFinal()"]
-    end
-
-    Auth --> Login
-    Auth --> App
-    Auth --> Dashboard
-    Auth --> Courses
-    Auth --> Users
-    App --> Auth
-    Store --> Editor
-    Store --> Preview
-    Offline --> Attendance
-    Offline --> Preview
-    Toast --> App
-    App --> Theme
-    Editor --> Theme
-    AuthGuard -.-> Login
-    AuthGuard -.-> Dashboard
-    RoleGuard -.-> Courses
-    RoleGuard -.-> Users
-    RoleGuard -.-> Attendance
-    RoleGuard -.-> Reports
-    Editor --> Preview
-    Preview --> LessonCard
-    Preview --> Quiz
-```
-
----
-
-## 3. Solo componentes
+### 2.1 Vista general (solo nombres)
 
 ```mermaid
 flowchart TD
@@ -470,8 +409,226 @@ flowchart TD
     RoleGuard --> Reports
 ```
 
----
+### 2.2 Funciones por componente
 
+#### auth.service.ts
+
+```mermaid
+flowchart LR
+    A["auth.service.ts"] --> m1["login()"]
+    A --> m2["logout()"]
+    A --> m3["getToken()"]
+    A --> m4["getUser()"]
+    A --> m5["isAuthenticated()"]
+    A --> m6["restoreSession()"]
+```
+
+#### toast.service.ts
+
+```mermaid
+flowchart LR
+    T["toast.service.ts"] --> m1["show()"]
+    T --> m2["success()"]
+    T --> m3["error()"]
+    T --> m4["warning()"]
+    T --> m5["info()"]
+    T --> m6["remove()"]
+```
+
+#### offline-storage.service.ts
+
+```mermaid
+flowchart LR
+    O["offline-storage.service.ts"] --> m1["saveAsistencia()"]
+    O --> m2["getPendingAsistencias()"]
+    O --> m3["markAsistenciaSynced()"]
+    O --> m4["saveEvaluacion()"]
+    O --> m5["getPendingEvaluaciones()"]
+```
+
+#### course-editor-store.service.ts
+
+```mermaid
+flowchart LR
+    S["course-editor-store.service.ts"] --> m1["cargarCurso()"]
+    S --> m2["guardarCurso()"]
+    S --> m3["undo()"]
+    S --> m4["redo()"]
+    S --> m5["agregarModulo()"]
+    S --> m6["eliminarModulo()"]
+    S --> m7["agregarLeccion()"]
+    S --> m8["eliminarLeccion()"]
+    S --> m9["agregarItem()"]
+    S --> m10["actualizarItem()"]
+    S --> m11["eliminarItem()"]
+    S --> m12["moverItem()"]
+    S --> m13["seleccionarElemento()"]
+```
+
+#### auth.guard.ts
+
+```mermaid
+flowchart LR
+    G["auth.guard.ts"] --> m1["authGuard() - redirige a login si no hay sesion"]
+```
+
+#### role.guard.ts
+
+```mermaid
+flowchart LR
+    R["role.guard.ts"] --> m1["roleGuard(roles) - valida rol/admin"]
+```
+
+#### theme.util.ts
+
+```mermaid
+flowchart LR
+    U["theme.util.ts"] --> m1["applyTheme()"]
+    U --> m2["loadTheme()"]
+```
+
+#### AppComponent (app shell)
+
+```mermaid
+flowchart LR
+    A["AppComponent"] --> m1["ngOnInit()"]
+    A --> m2["loadTheme()"]
+    A --> m3["toggleTheme()"]
+    A --> m4["toggleMenu()"]
+    A --> m5["logout()"]
+    A --> m6["filtra menu por rol"]
+```
+
+#### login.component.ts
+
+```mermaid
+flowchart LR
+    L["login.component.ts"] --> m1["onLogin()"]
+```
+
+#### dashboard.component.ts
+
+```mermaid
+flowchart LR
+    D["dashboard.component.ts"] --> m1["ngOnInit()"]
+    D --> m2["loadDashboard()"]
+```
+
+#### courses.component.ts
+
+```mermaid
+flowchart LR
+    C["courses.component.ts"] --> m1["loadCursos()"]
+    C --> m2["crearCurso()"]
+    C --> m3["abrirModal()"]
+    C --> m4["cerrarModal()"]
+    C --> m5["inscribirEstudiante()"]
+    C --> m6["cargarEstudiantesDisponibles()"]
+```
+
+#### course-editor.component.ts
+
+```mermaid
+flowchart LR
+    E["course-editor.component.ts"] --> m1["guardar()"]
+    E --> m2["deshacer()"]
+    E --> m3["rehacer()"]
+    E --> m4["dropEnCanvas()"]
+    E --> m5["dropEnModulo()"]
+    E --> m6["dropEnLeccion()"]
+    E --> m7["agregarModulo()"]
+    E --> m8["agregarLeccion()"]
+    E --> m9["agregarItem()"]
+    E --> m10["eliminarItem()"]
+    E --> m11["seleccionarModulo()"]
+    E --> m12["iniciarEdicion()"]
+    E --> m13["toggleTheme()"]
+    E --> m14["atajos teclado"]
+```
+
+#### course-preview.component.ts
+
+```mermaid
+flowchart LR
+    P["course-preview.component.ts"] --> m1["toggleLeccion()"]
+    P --> m2["iconoItem()"]
+    P --> m3["abrirNotas()"]
+    P --> m4["guardarCalificacion()"]
+    P --> m5["abrirEntrega()"]
+    P --> m6["enviarEntrega()"]
+    P --> m7["onArchivoSeleccionado()"]
+```
+
+#### lesson-card.component.ts
+
+```mermaid
+flowchart LR
+    LC["lesson-card.component.ts"] --> m1["iconoItem()"]
+    LC --> m2["labelTipo()"]
+    LC --> m3["vencida()"]
+    LC --> m4["extraerEvaId()"]
+    LC --> m5["sanitizeUrl()"]
+    LC --> m6["videoError()"]
+```
+
+#### quiz-player.component.ts
+
+```mermaid
+flowchart LR
+    Q["quiz-player.component.ts"] --> m1["iniciarTimer()"]
+    Q --> m2["formatoTiempo()"]
+    Q --> m3["seleccionarRespuesta()"]
+    Q --> m4["finalizarQuiz()"]
+    Q --> m5["volver()"]
+```
+
+#### attendance.component.ts
+
+```mermaid
+flowchart LR
+    AT["attendance.component.ts"] --> m1["loadClases()"]
+    AT --> m2["loadSesionHoy()"]
+    AT --> m3["abrirAsistencia()"]
+    AT --> m4["loadAlumnos()"]
+    AT --> m5["marcar()"]
+    AT --> m6["cerrarAsistencia()"]
+    AT --> m7["syncNow()"]
+    AT --> m8["puedeMarcar()"]
+```
+
+#### reports.component.ts
+
+```mermaid
+flowchart LR
+    RP["reports.component.ts"] --> m1["onTipoChange()"]
+    RP --> m2["loadReporte()"]
+    RP --> m3["descargarCSV()"]
+```
+
+#### user-management.component.ts
+
+```mermaid
+flowchart LR
+    UM["user-management.component.ts"] --> m1["loadUsuarios()"]
+    UM --> m2["search()"]
+    UM --> m3["goPage()"]
+    UM --> m4["openCreateModal()"]
+    UM --> m5["openEditModal()"]
+    UM --> m6["saveUser()"]
+    UM --> m7["deleteUser()"]
+```
+
+#### my-grades.component.ts
+
+```mermaid
+flowchart LR
+    MG["my-grades.component.ts"] --> m1["cargarMisNotas()"]
+    MG --> m2["agruparNotasPorCurso()"]
+    MG --> m3["toggleNotasCurso()"]
+    MG --> m4["notaFinal()"]
+```
+
+---
 ## Notas
 
 - El diagrama de BD refleja las **28 tablas finales** (sin `tareas_curso`/`entregas_tarea`),
