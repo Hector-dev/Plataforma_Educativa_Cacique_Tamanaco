@@ -1,7 +1,9 @@
-# Trabajo Especial de Grado
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco/v1.0/frontend/public/icons/logo.png" alt="Logo" width="120" />
+</p>
 
-## Plataforma Educativa Móvil Cacique Tamanaco
-### Sistema de Gestión de Aprendizaje (LMS) · Offline-First · PWA
+<h1 align="center">Cacique Tamanaco</h1>
+<h3 align="center">Plataforma Educativa Móvil · Offline-First · PWA</h3>
 
 ---
 
