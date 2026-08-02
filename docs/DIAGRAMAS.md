@@ -9,43 +9,92 @@ Diagramas Mermaid generados a partir del esquema real de la base de datos
 
 > Esquema final: las tablas `tareas_curso` y `entregas_tarea` ya no existen
 > (migración `08_migrar_tareas_a_evaluaciones.sql`).
+>
+> Para la **defensa de tesis** el DER se presenta en dos niveles de abstracción:
+> un **mapa conceptual** de módulos funcionales (macro) y diagramas de **detalle**
+> segmentados por subsistema. Las entidades están agrupadas jerárquicamente por
+> módulo para que los generadores visuales (Mermaid Live Editor, Draw.io)
+> desplieguen un diagrama limpio y ordenado.
+
+### 1.1 Mapa conceptual de módulos (macro)
+
+```mermaid
+flowchart LR
+    subgraph LMS["SISTEMA LMS / SGA"]
+        direction LR
+        M1["1. USUARIOS Y COMUNICACIÓN<br/>usuarios · documentos_personales<br/>asistencias_trabajadores · mensajes"]
+        M2["2. ESTRUCTURA ACADÉMICA<br/>cursos · modulos · clases<br/>materiales · materiales_curso"]
+        M3["3. MATRÍCULA Y TRÁMITES<br/>matriculas · curso_estudiantes<br/>exposicion_motivos · constancias_estudio"]
+        M4["4. EVALUACIONES Y QUIZZES<br/>evaluaciones · entregas_evaluacion<br/>calificaciones · quizzes + respuestas"]
+        M5["5. SEGUIMIENTO Y ASISTENCIA<br/>sesiones_asistencia · asistencias_alumnos<br/>asistencias_trabajadores · progreso_material"]
+    end
+    M1 <--> M2
+    M2 <--> M3
+    M3 <--> M4
+    M4 <--> M5
+```
+
+### 1.2 Diagrama ER completo estructurado por subsistemas (detalle)
 
 ```mermaid
 erDiagram
-    usuarios ||--o{ cursos : "docente (id_docente)"
-    usuarios ||--o{ documentos_personales : "id_usuario"
-    usuarios ||--o{ curso_estudiantes : "estudiante"
-    cursos ||--o{ curso_estudiantes : "id_curso"
-    usuarios ||--o{ matriculas : "id_estudiante"
-    cursos ||--o{ matriculas : "id_curso"
-    matriculas ||--o{ exposicion_motivos : "id_matricula"
-    cursos ||--o{ clases : "id_curso"
-    cursos ||--o{ materiales : "id_curso"
-    cursos ||--o{ modulos : "id_curso"
-    modulos ||--o{ clases : "id_modulo (opcional)"
-    clases ||--o{ evaluaciones : "id_clase"
-    clases ||--o{ materiales_curso : "id_clase"
-    clases ||--o{ sesiones_asistencia : "id_clase"
-    clases ||--o{ asistencias_alumnos : "id_clase"
-    evaluaciones ||--o{ entregas_evaluacion : "id_evaluacion"
-    evaluaciones ||--o{ calificaciones : "id_evaluacion"
-    evaluaciones ||--o{ quizzes : "id_evaluacion"
-    usuarios ||--o{ entregas_evaluacion : "id_estudiante"
-    usuarios ||--o{ calificaciones : "id_estudiante"
-    materiales ||--o{ progreso_material : "id_material"
-    usuarios ||--o{ progreso_material : "id_estudiante"
-    usuarios ||--o{ asistencias_alumnos : "id_estudiante"
-    sesiones_asistencia ||--o{ asistencias_alumnos : "id_sesion"
-    usuarios ||--o{ asistencias_trabajadores : "id_trabajador"
-    usuarios ||--o{ mensajes : "id_remitente"
-    usuarios ||--o{ mensajes : "id_destinatario"
-    usuarios ||--o{ constancias_estudio : "id_estudiante"
-    quizzes ||--o{ quiz_preguntas : "id_quiz"
-    quiz_preguntas ||--o{ quiz_opciones : "id_pregunta"
-    quizzes ||--o{ quiz_intentos : "id_quiz"
-    usuarios ||--o{ quiz_intentos : "id_estudiante"
-    quiz_intentos ||--o{ quiz_respuestas : "id_intento"
-    quiz_preguntas ||--o{ quiz_respuestas : "id_pregunta"
+
+    %% ==========================================
+    %% MÓDULO 1: USUARIOS Y COMUNICACIÓN
+    %% ==========================================
+    usuarios ||--o{ documentos_personales : "registra"
+    usuarios ||--o{ mensajes : "envía (id_remitente)"
+    usuarios ||--o{ mensajes : "recibe (id_destinatario)"
+    usuarios ||--o{ asistencias_trabajadores : "registra_trabajador"
+
+    %% ==========================================
+    %% MÓDULO 2: ESTRUCTURA ACADÉMICA Y CONTENIDOS
+    %% ==========================================
+    usuarios ||--o{ cursos : "imparte (id_docente)"
+    cursos ||--o{ modulos : "se_divide_en"
+    cursos ||--o{ clases : "contiene"
+    cursos ||--o{ materiales : "posee"
+    modulos ||--o{ clases : "agrupa (opcional)"
+    clases ||--o{ materiales_curso : "incluye"
+
+    %% ==========================================
+    %% MÓDULO 3: MATRÍCULA Y TRÁMITES
+    %% ==========================================
+    usuarios ||--o{ curso_estudiantes : "cursa_estudiante"
+    cursos ||--o{ curso_estudiantes : "pertenece_a"
+    usuarios ||--o{ matriculas : "solicita"
+    cursos ||--o{ matriculas : "oferta"
+    matriculas ||--o{ exposicion_motivos : "respalda"
+    usuarios ||--o{ constancias_estudio : "emite_a"
+
+    %% ==========================================
+    %% MÓDULO 4: EVALUACIONES, ENTREGAS Y QUIZZES
+    %% ==========================================
+    clases ||--o{ evaluaciones : "contiene"
+    evaluaciones ||--o{ entregas_evaluacion : "genera"
+    evaluaciones ||--o{ calificaciones : "asigna"
+    evaluaciones ||--o{ quizzes : "implementa"
+
+    usuarios ||--o{ entregas_evaluacion : "realiza"
+    usuarios ||--o{ calificaciones : "recibe"
+
+    quizzes ||--o{ quiz_preguntas : "se_compone_de"
+    quiz_preguntas ||--o{ quiz_opciones : "ofrece"
+    quizzes ||--o{ quiz_intentos : "registra"
+    usuarios ||--o{ quiz_intentos : "inicia"
+    quiz_intentos ||--o{ quiz_respuestas : "guarda"
+    quiz_preguntas ||--o{ quiz_respuestas : "evalúa"
+
+    %% ==========================================
+    %% MÓDULO 5: SEGUIMIENTO Y ASISTENCIA
+    %% ==========================================
+    clases ||--o{ sesiones_asistencia : "inicia"
+    clases ||--o{ asistencias_alumnos : "registra_clase"
+    sesiones_asistencia ||--o{ asistencias_alumnos : "vincula_sesion"
+    usuarios ||--o{ asistencias_alumnos : "asiste_estudiante"
+
+    materiales ||--o{ progreso_material : "mide"
+    usuarios ||--o{ progreso_material : "avanza"
 
     usuarios {
         serial id_usuario PK
@@ -255,6 +304,46 @@ erDiagram
     }
 ```
 
+### 1.3 Sub-diagramas modulares para diapositivas
+
+**A. Subsistema de Evaluaciones y Quizzes**
+
+> **Objetivo:** explicar cómo el sistema gestiona tanto evaluaciones
+> tradicionales como exámenes interactivos (quizzes).
+
+```mermaid
+erDiagram
+    clases ||--o{ evaluaciones : "contiene"
+    evaluaciones ||--o{ entregas_evaluacion : "genera"
+    evaluaciones ||--o{ calificaciones : "asigna"
+    evaluaciones ||--o{ quizzes : "implementa"
+    usuarios ||--o{ entregas_evaluacion : "realiza"
+    usuarios ||--o{ calificaciones : "recibe"
+
+    quizzes ||--o{ quiz_preguntas : "posee"
+    quiz_preguntas ||--o{ quiz_opciones : "ofrece"
+    quizzes ||--o{ quiz_intentos : "registra"
+    usuarios ||--o{ quiz_intentos : "ejecuta"
+    quiz_intentos ||--o{ quiz_respuestas : "contiene"
+    quiz_preguntas ||--o{ quiz_respuestas : "valida"
+```
+
+**B. Subsistema de Control de Asistencia y Progreso**
+
+> **Objetivo:** demostrar la trazabilidad del estudiante respecto a la
+> asistencia a clases y el consumo de contenidos.
+
+```mermaid
+erDiagram
+    usuarios ||--o{ asistencias_alumnos : "asiste"
+    clases ||--o{ sesiones_asistencia : "programa"
+    clases ||--o{ asistencias_alumnos : "registra"
+    sesiones_asistencia ||--o{ asistencias_alumnos : "valida"
+
+    materiales ||--o{ progreso_material : "mide"
+    usuarios ||--o{ progreso_material : "avanza"
+```
+
 ---
 
 ## 2. Diagrama de componentes + funciones
@@ -385,7 +474,11 @@ flowchart TD
 
 ## Notas
 
-- El diagrama de BD refleja las **28 tablas finales** (sin `tareas_curso`/`entregas_tarea`).
+- El diagrama de BD refleja las **28 tablas finales** (sin `tareas_curso`/`entregas_tarea`),
+  organizadas en **5 módulos funcionales** para la defensa de tesis.
+- Recomendaciones visuales para la defensa: 🟦 azul = usuarios/perfiles,
+  🟩 verde = módulo académico, 🟨 amarillo/naranja = evaluaciones y quizzes,
+  💜 púrpura = asistencia y progreso.
 - El editor canvas es el componente más pesado: delega toda su mutación al
   `course-editor-store.service.ts` (undo/redo y atomicidad).
 - Los guards protegen rutas: `authGuard` para sesión, `roleGuard` para roles
