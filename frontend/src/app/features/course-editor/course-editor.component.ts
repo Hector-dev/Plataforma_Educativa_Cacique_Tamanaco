@@ -70,6 +70,11 @@ export class CourseEditorComponent implements OnInit {
   quizEditFormTipo: 'opcion_multiple' | 'verdadero_falso' = 'opcion_multiple';
   quizEditFormOpciones: { texto: string; es_correcta: boolean }[] = [];
 
+  // ── Subida de material ──────────────────────────────────────
+
+  readonly subiendoMaterial = signal(false);
+  readonly materialUploadError = signal<string | null>(null);
+
   // ── Computed ─────────────────────────────────────────────────
 
   readonly documento = this.store.documento;
@@ -477,6 +482,52 @@ export class CourseEditorComponent implements OnInit {
       error: (err) => {
         this.quizEditSaving.set(false);
         alert(err.error?.message || 'Error al guardar el quiz');
+      }
+    });
+  }
+
+  // ── Subida de material (imagen/video/documento) ─────────────
+
+  subirArchivoMaterial(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.length ? input.files[0] : null;
+    if (!archivo) return;
+
+    const idCurso = this.route.snapshot.paramMap.get('id');
+    if (!idCurso) {
+      this.materialUploadError.set('No se pudo identificar el curso');
+      return;
+    }
+
+    this.subiendoMaterial.set(true);
+    this.materialUploadError.set(null);
+
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+
+    this.http.post<{ success: boolean; message?: string; data: { urlRecurso: string; tipoRecurso: string } }>(
+      `${this.apiUrl}/cursos/${idCurso}/material-upload`,
+      formData
+    ).subscribe({
+      next: (res) => {
+        this.subiendoMaterial.set(false);
+        if (res.success && res.data) {
+          const sel = this.seleccion();
+          if (sel?.tipo === 'item') {
+            this.store.actualizarItem(sel.leccionId, sel.moduloId || null, sel.itemId, {
+              urlRecurso: res.data.urlRecurso,
+              tipoRecurso: res.data.tipoRecurso as 'video' | 'documento' | 'enlace' | 'imagen',
+            });
+          }
+        } else {
+          this.materialUploadError.set(res.message || 'No se pudo subir el archivo');
+        }
+        input.value = '';
+      },
+      error: (err) => {
+        this.subiendoMaterial.set(false);
+        this.materialUploadError.set(err.error?.message || 'Error al subir el archivo');
+        input.value = '';
       }
     });
   }

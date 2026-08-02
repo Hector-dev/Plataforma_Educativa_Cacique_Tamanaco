@@ -78,8 +78,8 @@ services:
     ports:
       - "${PORT:-3000}:3000"
     volumes:
-      # Persistir archivos subidos (entregas, documentos)
-      - ./uploads/entregas:/app/uploads/entregas
+      # Persistir archivos subidos (entregas, materiales de curso)
+      - ./uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy

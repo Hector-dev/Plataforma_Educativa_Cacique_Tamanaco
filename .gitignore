@@ -23,6 +23,8 @@ cache/
 data/postgres/
 uploads/entregas/*
 !uploads/entregas/.gitkeep
+uploads/materiales/*
+!uploads/materiales/.gitkeep
 
 # ─── Docker images exportadas ──────────────────────────
 docker-images/

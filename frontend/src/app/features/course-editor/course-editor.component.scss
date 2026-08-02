@@ -591,6 +591,21 @@ $transition: 200ms ease;
       resize: vertical;
       min-height: 60px;
     }
+
+    .material-file-input {
+      padding: 6px;
+      font-size: 12px;
+    }
+
+    .material-upload-msg {
+      display: block;
+      margin-top: 6px;
+      font-size: 12px;
+      font-weight: 600;
+
+      &.ok { color: var(--ce-success, #10b981); }
+      &.error { color: #ef4444; }
+    }
   }
 
   .inspector-empty {

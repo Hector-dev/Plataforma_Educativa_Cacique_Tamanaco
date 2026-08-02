@@ -344,10 +344,25 @@
         <!-- Propiedades de material -->
         @if (elem.tipo === 'item' && $any(elem.datos).tipo === 'material') {
         <div class="inspector-field">
+          <label>Subir archivo (imagen, video o documento)</label>
+          <input type="file" class="material-file-input"
+                 accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.avif,.mp4,.webm,.ogg,.mov,.mkv,.avi,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
+                 (change)="subirArchivoMaterial($event)" />
+          @if (subiendoMaterial()) {
+            <span class="material-upload-msg">⏳ Subiendo archivo...</span>
+          }
+          @if (materialUploadError()) {
+            <span class="material-upload-msg error">{{ materialUploadError() }}</span>
+          }
+          @if ($any(elem.datos).urlRecurso) {
+            <span class="material-upload-msg ok">✅ {{ $any(elem.datos).tipoRecurso }}</span>
+          }
+        </div>
+        <div class="inspector-field">
           <label>URL del recurso</label>
           <input [ngModel]="$any(elem.datos).urlRecurso"
                  (ngModelChange)="actualizarPropiedad(elem, 'urlRecurso', $event)"
-                 placeholder="https://..." />
+                 placeholder="https://... o /uploads/materiales/..." />
         </div>
         <div class="inspector-field">
           <label>Tipo de recurso</label>

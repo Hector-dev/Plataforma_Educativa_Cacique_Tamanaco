@@ -12,9 +12,11 @@ import {
     listarEstudiantesDisponibles,
     obtenerDocumentoCurso,
     guardarDocumentoCurso,
+    subirMaterialCurso,
 } from '../controllers/cursoController';
 import authMiddleware, { requireRole } from '../middleware/authMiddleware';
 import { requireCursoOwner, requireCursoAccess } from '../utils/authorization';
+import { uploadMaterial } from '../middleware/materialUploadMiddleware';
 
 const router = Router();
 
@@ -37,6 +39,7 @@ router.delete('/:id/matricular/:idEstudiante', soloDocentes, retirarEstudiante);
 router.put('/:id', soloDocentes, actualizarCurso);
 router.delete('/:id', soloDocentes, eliminarCurso);
 router.put('/:id/document', soloDocentes, guardarDocumentoCurso);
+router.post('/:id/material-upload', soloDocentes, requireCursoOwner, uploadMaterial.single('archivo'), subirMaterialCurso);
 router.get('/:id/estudiantes-disponibles', soloDocentes, requireCursoOwner, listarEstudiantesDisponibles);
 
 export default router;

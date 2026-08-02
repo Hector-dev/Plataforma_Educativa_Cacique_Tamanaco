@@ -1,7 +1,9 @@
 import { logger } from '../utils/logger';
 import { Request, Response } from 'express';
+import path from 'path';
 import { query } from '../db';
 import { esAdmin, verificarOwnershipCurso } from '../utils/authorization';
+import { detectarTipoRecurso } from '../middleware/materialUploadMiddleware';
 
 // ============================================================
 // CRUD de Cursos
@@ -1026,5 +1028,52 @@ export const guardarDocumentoCurso = async (req: Request, res: Response): Promis
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     } finally {
         client.release();
+    }
+};
+
+// ============================================================
+// POST /api/cursos/:id/material-upload
+// Sube un archivo de material (imagen, video o documento) al curso.
+// Requiere ser docente propietario del curso (o admin).
+// ============================================================
+export const subirMaterialCurso = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const id_curso = parseInt(req.params.id, 10);
+        if (isNaN(id_curso)) {
+            res.status(400).json({ success: false, message: 'ID de curso inválido' });
+            return;
+        }
+
+        // Verificar ownership del curso
+        if (!req.user || !(await verificarOwnershipCurso(id_curso, req.user))) {
+            res.status(403).json({
+                success: false,
+                message: 'No tiene permiso para subir materiales a este curso',
+            });
+            return;
+        }
+
+        if (!req.file) {
+            res.status(400).json({ success: false, message: 'Debe adjuntar un archivo' });
+            return;
+        }
+
+        const ext = path.extname(req.file.originalname).toLowerCase();
+        const tipoRecurso = detectarTipoRecurso(ext);
+        const urlRecurso = `/uploads/materiales/${req.file.filename}`;
+
+        res.status(201).json({
+            success: true,
+            message: 'Material subido exitosamente',
+            data: {
+                urlRecurso,
+                tipoRecurso,
+                nombreOriginal: req.file.originalname,
+                size: req.file.size,
+            },
+        });
+    } catch (error: any) {
+        logger.error({ err: error }, '[CursoController] Error al subir material:');
+        res.status(500).json({ success: false, message: 'Error interno del servidor al subir el material' });
     }
 };

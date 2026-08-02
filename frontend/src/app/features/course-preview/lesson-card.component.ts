@@ -104,7 +104,13 @@ export interface Leccion {
                       }
                     }
                     @if (item.tipo === 'material' && item.urlRecurso) {
-                      <a class="btn-action btn-view" [href]="sanitizeUrl(item.urlRecurso)" target="_blank" rel="noopener noreferrer">👁️ Ver recurso</a>
+                      @if (item.tipoRecurso === 'video') {
+                        <a class="btn-action btn-view" [href]="sanitizeUrl(item.urlRecurso)" target="_blank" rel="noopener noreferrer">🎬 Ver video</a>
+                      } @else if (item.tipoRecurso === 'imagen') {
+                        <a class="btn-action btn-view" [href]="sanitizeUrl(item.urlRecurso)" target="_blank" rel="noopener noreferrer">🖼️ Ver imagen</a>
+                      } @else {
+                        <a class="btn-action btn-view" [href]="sanitizeUrl(item.urlRecurso)" target="_blank" rel="noopener noreferrer">👁️ Ver recurso</a>
+                      }
                     }
                   } @else {
                     @if (item.tipo === 'evaluacion' || item.tipo === 'quiz') {
@@ -113,6 +119,18 @@ export interface Leccion {
                   }
                 </div>
               </div>
+
+              @if (item.tipo === 'material' && item.urlRecurso && item.tipoRecurso === 'video') {
+                <div class="material-preview">
+                  <video controls preload="metadata" [src]="sanitizeUrl(item.urlRecurso)">
+                    Tu navegador no soporta la reproducción de video.
+                  </video>
+                </div>
+              } @else if (item.tipo === 'material' && item.urlRecurso && item.tipoRecurso === 'imagen') {
+                <div class="material-preview">
+                  <img [src]="sanitizeUrl(item.urlRecurso)" [alt]="item.titulo" loading="lazy" />
+                </div>
+              }
             }
             @if (leccion.items.length === 0) {
               <p class="info-text">Esta clase no tiene actividades.</p>
@@ -183,6 +201,10 @@ export interface Leccion {
     .badge-vencida { display: inline-flex; align-items: center; padding: 0.35rem 0.7rem; background: rgba(239,68,68,0.12); color: var(--error); border: 1px solid rgba(239,68,68,0.3); border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
 
     .info-text { color: var(--text-secondary); font-size: 0.85rem; }
+
+    .material-preview { margin-top: 0.6rem; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); overflow: hidden; background: #000; }
+    .material-preview video { width: 100%; max-height: 320px; display: block; background: #000; }
+    .material-preview img { width: 100%; max-height: 320px; object-fit: contain; display: block; background: #000; }
 
     @media (max-width: 600px) {
       .lesson-header { padding: 0.75rem; gap: 0.55rem; }

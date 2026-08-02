@@ -67,6 +67,18 @@
         "maxSize": 100,
         "maxAge": "1h"
       }
+    },
+    {
+      "name": "contenido-upload",
+      "urls": [
+        "/uploads/**"
+      ],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 200,
+        "maxAge": "30d",
+        "timeout": "5s"
+      }
     }
   ]
 }
