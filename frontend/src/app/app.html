@@ -36,7 +36,9 @@
         <span class="hamburger-line"></span>
         <span class="hamburger-line"></span>
       </button>
-      <span class="mobile-brand" aria-hidden="true">📘</span>
+      <span class="mobile-brand" aria-hidden="true">
+        <img src="icons/logo.png" alt="" class="mobile-logo" />
+      </span>
       <h1 class="mobile-title">Cacique Tamanaco</h1>
       <button class="theme-toggle mobile-theme-toggle" (click)="toggleTheme()"
               [attr.aria-label]="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
@@ -53,7 +55,9 @@
       <div class="sidebar-header" (click)="sidebarCollapsed = !sidebarCollapsed"
            (keydown.enter)="sidebarCollapsed = !sidebarCollapsed" tabindex="0" role="button"
            [attr.aria-label]="sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'">
-        <span class="logo" aria-hidden="true">📘</span>
+        <span class="logo" aria-hidden="true">
+          <img src="icons/logo.png" alt="" class="app-logo" />
+        </span>
         <h2>Cacique Tamanaco</h2>
       </div>
       <nav class="sidebar-nav">

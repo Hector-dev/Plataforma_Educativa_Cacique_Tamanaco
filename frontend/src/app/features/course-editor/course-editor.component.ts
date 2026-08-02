@@ -12,6 +12,7 @@ import { CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-dr
 import { environment } from '../../../environments/environment';
 
 import { CourseEditorStoreService, ElementoSeleccionado } from '../../core/services/course-editor-store.service';
+import { applyTheme, loadTheme } from '../../core/utils/theme.util';
 import {
   CursoDocument,
   Modulo,
@@ -87,9 +88,7 @@ export class CourseEditorComponent implements OnInit {
   // ── Lifecycle ────────────────────────────────────────────────
 
   ngOnInit(): void {
-    // Cargar tema guardado
-    const saved = localStorage.getItem('cactam_theme');
-    this.isDark.set(saved !== 'light');
+    this.isDark.set(loadTheme());
 
     const idCurso = this.route.snapshot.paramMap.get('id');
     if (idCurso) {
@@ -102,13 +101,7 @@ export class CourseEditorComponent implements OnInit {
   toggleTheme(): void {
     const nuevoValor = !this.isDark();
     this.isDark.set(nuevoValor);
-    if (nuevoValor) {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('cactam_theme', 'dark');
-    } else {
-      document.documentElement.setAttribute('data-theme', 'light');
-      localStorage.setItem('cactam_theme', 'light');
-    }
+    applyTheme(nuevoValor);
   }
 
   // ── Atajos de teclado ───────────────────────────────────────

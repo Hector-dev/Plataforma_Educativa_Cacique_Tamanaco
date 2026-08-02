@@ -14,7 +14,9 @@ import { AuthService } from '../../core/services/auth.service';
     <div class="login-view">
       <div class="login-card">
         <div class="login-brand">
-          <span class="login-logo">📘</span>
+          <span class="login-logo">
+            <img src="icons/logo.png" alt="" class="login-logo-img" />
+          </span>
           <h1>Cacique Tamanaco</h1>
           <p>Plataforma Educativa</p>
         </div>
@@ -46,7 +48,8 @@ import { AuthService } from '../../core/services/auth.service';
     .login-view { width: 100%; max-width: 420px; padding: 2rem; }
     .login-card { background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 16px; padding: 2.5rem; }
     .login-brand { text-align: center; margin-bottom: 2rem; }
-    .login-logo { font-size: 3rem; }
+    .login-logo { font-size: 3rem; display: flex; justify-content: center; }
+    .login-logo-img { width: 96px; height: 96px; object-fit: contain; }
     .login-brand h1 { font-size: 1.5rem; color: var(--text-primary); margin-top: 0.5rem; }
     .login-brand p { color: var(--text-secondary); font-size: 0.9rem; }
     .form-group { margin-bottom: 1.25rem; }

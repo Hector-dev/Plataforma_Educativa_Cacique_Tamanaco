@@ -4,6 +4,7 @@ import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from './core/services/auth.service';
 import { ToastService } from './core/services/toast.service';
+import { applyTheme, loadTheme } from './core/utils/theme.util';
 
 @Component({
   selector: 'app-root',
@@ -84,8 +85,7 @@ export class App implements OnInit {
 
   toggleTheme() {
     this.isDark = !this.isDark;
-    document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
-    localStorage.setItem('cacique_theme', this.isDark ? 'dark' : 'light');
+    applyTheme(this.isDark);
   }
 
   toggleMenu() {
@@ -97,10 +97,7 @@ export class App implements OnInit {
   }
 
   private loadTheme() {
-    const saved = localStorage.getItem('cacique_theme');
-    const isDark = saved !== 'light';
-    this.isDark = isDark;
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    this.isDark = loadTheme();
   }
 
   logout() {
