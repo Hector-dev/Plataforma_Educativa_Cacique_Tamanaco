@@ -34,67 +34,20 @@ flowchart LR
     M4 <--> M5
 ```
 
-### 1.2 Diagrama ER completo estructurado por subsistemas (detalle)
+### 1.2 Diagrama de tablas por módulo (entidades y atributos)
+
+Cada módulo se presenta en una diapositiva independiente para evitar el
+diagrama monolítico ilegible. Son las **28 tablas finales** (sin
+`tareas_curso`/`entregas_tarea`).
+
+**Módulo 1: Usuarios y Comunicación**
 
 ```mermaid
 erDiagram
-
-    %% ==========================================
-    %% MÓDULO 1: USUARIOS Y COMUNICACIÓN
-    %% ==========================================
     usuarios ||--o{ documentos_personales : "registra"
     usuarios ||--o{ mensajes : "envía (id_remitente)"
     usuarios ||--o{ mensajes : "recibe (id_destinatario)"
     usuarios ||--o{ asistencias_trabajadores : "registra_trabajador"
-
-    %% ==========================================
-    %% MÓDULO 2: ESTRUCTURA ACADÉMICA Y CONTENIDOS
-    %% ==========================================
-    usuarios ||--o{ cursos : "imparte (id_docente)"
-    cursos ||--o{ modulos : "se_divide_en"
-    cursos ||--o{ clases : "contiene"
-    cursos ||--o{ materiales : "posee"
-    modulos ||--o{ clases : "agrupa (opcional)"
-    clases ||--o{ materiales_curso : "incluye"
-
-    %% ==========================================
-    %% MÓDULO 3: MATRÍCULA Y TRÁMITES
-    %% ==========================================
-    usuarios ||--o{ curso_estudiantes : "cursa_estudiante"
-    cursos ||--o{ curso_estudiantes : "pertenece_a"
-    usuarios ||--o{ matriculas : "solicita"
-    cursos ||--o{ matriculas : "oferta"
-    matriculas ||--o{ exposicion_motivos : "respalda"
-    usuarios ||--o{ constancias_estudio : "emite_a"
-
-    %% ==========================================
-    %% MÓDULO 4: EVALUACIONES, ENTREGAS Y QUIZZES
-    %% ==========================================
-    clases ||--o{ evaluaciones : "contiene"
-    evaluaciones ||--o{ entregas_evaluacion : "genera"
-    evaluaciones ||--o{ calificaciones : "asigna"
-    evaluaciones ||--o{ quizzes : "implementa"
-
-    usuarios ||--o{ entregas_evaluacion : "realiza"
-    usuarios ||--o{ calificaciones : "recibe"
-
-    quizzes ||--o{ quiz_preguntas : "se_compone_de"
-    quiz_preguntas ||--o{ quiz_opciones : "ofrece"
-    quizzes ||--o{ quiz_intentos : "registra"
-    usuarios ||--o{ quiz_intentos : "inicia"
-    quiz_intentos ||--o{ quiz_respuestas : "guarda"
-    quiz_preguntas ||--o{ quiz_respuestas : "evalúa"
-
-    %% ==========================================
-    %% MÓDULO 5: SEGUIMIENTO Y ASISTENCIA
-    %% ==========================================
-    clases ||--o{ sesiones_asistencia : "inicia"
-    clases ||--o{ asistencias_alumnos : "registra_clase"
-    sesiones_asistencia ||--o{ asistencias_alumnos : "vincula_sesion"
-    usuarios ||--o{ asistencias_alumnos : "asiste_estudiante"
-
-    materiales ||--o{ progreso_material : "mide"
-    usuarios ||--o{ progreso_material : "avanza"
 
     usuarios {
         serial id_usuario PK
@@ -109,6 +62,44 @@ erDiagram
         varchar genero
         timestamptz fecha_creacion
     }
+    documentos_personales {
+        serial id_documento PK
+        integer id_usuario FK
+        varchar tipo_documento
+        text numero_identificacion
+        text archivo_url
+        timestamptz fecha_subida
+    }
+    mensajes {
+        serial id_mensaje PK
+        integer id_remitente FK
+        integer id_destinatario FK
+        varchar asunto
+        text cuerpo
+        boolean leido
+        timestamptz fecha_envio
+    }
+    asistencias_trabajadores {
+        serial id_asistencia_trabajador PK
+        integer id_trabajador FK
+        date fecha
+        time hora_entrada
+        time hora_salida
+        varchar estado
+    }
+```
+
+**Módulo 2: Estructura Académica y Contenidos**
+
+```mermaid
+erDiagram
+    usuarios ||--o{ cursos : "imparte (id_docente)"
+    cursos ||--o{ modulos : "se_divide_en"
+    cursos ||--o{ clases : "contiene"
+    cursos ||--o{ materiales : "posee"
+    modulos ||--o{ clases : "agrupa (opcional)"
+    clases ||--o{ materiales_curso : "incluye"
+
     cursos {
         serial id_curso PK
         integer id_docente FK
@@ -136,6 +127,79 @@ erDiagram
         integer duracion_minutos
         numeric orden
     }
+    materiales {
+        serial id_material PK
+        integer id_curso FK
+        varchar titulo
+        varchar tipo
+        text contenido
+        integer orden
+    }
+    materiales_curso {
+        serial id_material_curso PK
+        integer id_clase FK
+        varchar titulo
+        text descripcion
+        text url_recurso
+        varchar tipo_recurso
+        numeric orden
+    }
+```
+
+**Módulo 3: Matrícula y Trámites**
+
+```mermaid
+erDiagram
+    usuarios ||--o{ curso_estudiantes : "cursa_estudiante"
+    cursos ||--o{ curso_estudiantes : "pertenece_a"
+    usuarios ||--o{ matriculas : "solicita"
+    cursos ||--o{ matriculas : "oferta"
+    matriculas ||--o{ exposicion_motivos : "respalda"
+    usuarios ||--o{ constancias_estudio : "emite_a"
+
+    matriculas {
+        serial id_matricula PK
+        integer id_estudiante FK
+        integer id_curso FK
+        varchar estado
+        timestamptz fecha_inscripcion
+    }
+    curso_estudiantes {
+        integer id_curso PK, FK
+        integer id_estudiante PK, FK
+        timestamptz inscrito_en
+    }
+    exposicion_motivos {
+        serial id_exposicion PK
+        integer id_matricula FK
+        text motivo
+        boolean aprobado
+    }
+    constancias_estudio {
+        serial id_constancia PK
+        integer id_estudiante FK
+        varchar codigo_verificacion UK
+        text url_documento
+    }
+```
+
+**Módulo 4: Evaluaciones, Entregas y Quizzes**
+
+```mermaid
+erDiagram
+    clases ||--o{ evaluaciones : "contiene"
+    evaluaciones ||--o{ entregas_evaluacion : "genera"
+    evaluaciones ||--o{ calificaciones : "asigna"
+    evaluaciones ||--o{ quizzes : "implementa"
+    usuarios ||--o{ entregas_evaluacion : "realiza"
+    usuarios ||--o{ calificaciones : "recibe"
+    quizzes ||--o{ quiz_preguntas : "se_compone_de"
+    quiz_preguntas ||--o{ quiz_opciones : "ofrece"
+    quizzes ||--o{ quiz_intentos : "registra"
+    usuarios ||--o{ quiz_intentos : "inicia"
+    quiz_intentos ||--o{ quiz_respuestas : "guarda"
+    quiz_preguntas ||--o{ quiz_respuestas : "evalúa"
+
     evaluaciones {
         serial id_evaluacion PK
         integer id_clase FK
@@ -202,30 +266,19 @@ erDiagram
         integer id_opcion FK
         boolean es_correcta
     }
-    materiales {
-        serial id_material PK
-        integer id_curso FK
-        varchar titulo
-        varchar tipo
-        text contenido
-        integer orden
-    }
-    materiales_curso {
-        serial id_material_curso PK
-        integer id_clase FK
-        varchar titulo
-        text descripcion
-        text url_recurso
-        varchar tipo_recurso
-        numeric orden
-    }
-    progreso_material {
-        serial id_progreso PK
-        integer id_estudiante FK
-        integer id_material FK
-        varchar estado
-        numeric nota
-    }
+```
+
+**Módulo 5: Seguimiento y Asistencia**
+
+```mermaid
+erDiagram
+    clases ||--o{ sesiones_asistencia : "inicia"
+    clases ||--o{ asistencias_alumnos : "registra_clase"
+    sesiones_asistencia ||--o{ asistencias_alumnos : "vincula_sesion"
+    usuarios ||--o{ asistencias_alumnos : "asiste_estudiante"
+    materiales ||--o{ progreso_material : "mide"
+    usuarios ||--o{ progreso_material : "avanza"
+
     sesiones_asistencia {
         serial id_sesion PK
         integer id_clase FK
@@ -246,48 +299,12 @@ erDiagram
         varchar estado
         date fecha_registro
     }
-    asistencias_trabajadores {
-        serial id_asistencia_trabajador PK
-        integer id_trabajador FK
-        date fecha
-        time hora_entrada
-        time hora_salida
-        varchar estado
-    }
-    matriculas {
-        serial id_matricula PK
+    progreso_material {
+        serial id_progreso PK
         integer id_estudiante FK
-        integer id_curso FK
+        integer id_material FK
         varchar estado
-        timestamptz fecha_inscripcion
-    }
-    curso_estudiantes {
-        integer id_curso PK, FK
-        integer id_estudiante PK, FK
-        timestamptz inscrito_en
-    }
-    documentos_personales {
-        serial id_documento PK
-        integer id_usuario FK
-        varchar tipo_documento
-        text numero_identificacion
-        text archivo_url
-        timestamptz fecha_subida
-    }
-    mensajes {
-        serial id_mensaje PK
-        integer id_remitente FK
-        integer id_destinatario FK
-        varchar asunto
-        text cuerpo
-        boolean leido
-        timestamptz fecha_envio
-    }
-    exposicion_motivos {
-        serial id_exposicion PK
-        integer id_matricula FK
-        text motivo
-        boolean aprobado
+        numeric nota
     }
     calendarios {
         serial id_evento PK
@@ -295,12 +312,6 @@ erDiagram
         text descripcion
         timestamptz fecha_inicio
         varchar tipo_evento
-    }
-    constancias_estudio {
-        serial id_constancia PK
-        integer id_estudiante FK
-        varchar codigo_verificacion UK
-        text url_documento
     }
 ```
 
