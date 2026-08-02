@@ -22,11 +22,11 @@ Diagramas Mermaid generados a partir del esquema real de la base de datos
 flowchart LR
     subgraph LMS["SISTEMA LMS / SGA"]
         direction LR
-        M1["1. USUARIOS Y COMUNICACION<br/>usuarios - documentos_personales<br/>asistencias_trabajadores"]
-        M2["2. ESTRUCTURA ACADEMICA<br/>cursos - modulos - clases<br/>materiales - materiales_curso"]
-        M3["3. MATRICULA Y TRAMITES<br/>matriculas - curso_estudiantes<br/>exposicion_motivos - constancias_estudio"]
-        M4["4. EVALUACIONES Y QUIZZES<br/>evaluaciones - entregas_evaluacion<br/>calificaciones - quizzes + respuestas"]
-        M5["5. SEGUIMIENTO Y ASISTENCIA<br/>sesiones_asistencia - asistencias_alumnos<br/>asistencias_trabajadores - progreso_material"]
+        M1["1. USUARIOS Y COMUNICACION: usuarios, documentos_personales, asistencias_trabajadores"]
+        M2["2. ESTRUCTURA ACADEMICA: cursos, modulos, clases, materiales, materiales_curso"]
+        M3["3. MATRICULA Y TRAMITES: matriculas, curso_estudiantes, exposicion_motivos, constancias_estudio"]
+        M4["4. EVALUACIONES Y QUIZZES: evaluaciones, entregas_evaluacion, calificaciones, quizzes"]
+        M5["5. SEGUIMIENTO Y ASISTENCIA: sesiones_asistencia, asistencias_alumnos, progreso_material"]
     end
     M1 <--> M2
     M2 <--> M3

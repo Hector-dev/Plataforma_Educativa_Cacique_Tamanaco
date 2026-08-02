@@ -1,327 +1,124 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco/v1.0/frontend/public/icons/logo.png" alt="Logo" width="120" />
-</p>
+# Trabajo Especial de Grado
 
-<h1 align="center">Cacique Tamanaco</h1>
-<h3 align="center">Plataforma Educativa Móvil · Offline-First · PWA</h3>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/angular-21-DD0031?logo=angular" alt="Angular 21" />
-  <img src="https://img.shields.io/badge/node-20-339933?logo=nodedotjs" alt="Node 20" />
-  <img src="https://img.shields.io/badge/postgresql-16-4169E1?logo=postgresql" alt="PostgreSQL 16" />
-  <img src="https://img.shields.io/badge/docker-27-2496ED?logo=docker" alt="Docker 27" />
-  <img src="https://img.shields.io/badge/express-4.x-000000?logo=express" alt="Express 4.x" />
-  <img src="https://img.shields.io/badge/pwa-ready-5A0FC8?logo=pwa" alt="PWA Ready" />
-  <img src="https://img.shields.io/badge/v1.0-FF6F00?logo=git" alt="v1.0" />
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="License MIT" />
-</p>
+## Plataforma Educativa Móvil Cacique Tamanaco
+### Sistema de Gestión de Aprendizaje (LMS) · Offline-First · PWA
 
 ---
 
-## 🧭 Índice
+### Datos del proyecto
 
-- [✨ Características](#-características)
-- [🏗️ Arquitectura](#️-arquitectura)
-- [📋 Requisitos](#-requisitos)
-- [🚀 Instalación](#-instalación)
-  - [Opción A: Docker (recomendado)](#opción-a-docker-recomendado)
-  - [Opción B: Sin Docker (desarrollo manual)](#opción-b-sin-docker-desarrollo-manual)
-- [🔐 Acceso inicial](#-acceso-inicial)
-- [Configuración de Secrets](#-configuración-de-secrets)
-- [📂 Estructura del proyecto](#-estructura-del-proyecto)
-- [🛠️ Comandos útiles](#️-comandos-útiles)
-- [📱 Funcionalidades](#-funcionalidades)
-- [📊 Diagramas](#-diagramas)
-- [📄 Licencia](#-licencia)
+| Campo | Detalle |
+|-------|---------|
+| **Institución** | U.E.N. Cacique Tamanaco |
+| **Plataforma** | Web móvil (PWA) |
+| **Área** | Educación — Gestión de aprendizaje (LMS/SGA) |
+| **Versión** | v1.0 |
+| **Licencia** | MIT |
 
 ---
 
-## ✨ Características
+## Resumen
 
-| Categoría | Funcionalidades |
-|-----------|----------------|
-| 👥 **Usuarios** | CRUD completo, roles (Admin/Docente/Estudiante), JWT auth, bcrypt |
-| 📖 **Cursos** | Creación, matriculación, estructura modular con clases |
-| ✏️ **Editor Visual** | Canvas drag & drop, módulos, lecciones, evaluaciones, quizzes, materiales |
-| 🎯 **Quizzes** | Opción múltiple, verdadero/falso, tiempo límite, calificación automática |
-| 📝 **Entregas** | Subida de archivos (PDF/Word), enlaces URL, calificación docente |
-| ✅ **Asistencia** | Registro presente/ausente/justificado, soporte offline |
-| 📊 **Reportes** | Rendimiento por curso, asistencia general, gráficos Chart.js, exportación CSV |
-| 🔒 **Documentos** | Cifrado AES-256-CBC para documentos personales sensibles |
-| 📴 **Offline-First** | IndexedDB (Dexie.js), sincronización masiva al reconectar |
-| 🌓 **Tema** | Claro/Oscuro persistente, toggle unificado (`theme.util.ts`) |
-| 📱 **Responsive** | Sidebar colapsable, off-canvas móvil, inspector overlay, hamburger menu |
-| 🐳 **Docker** | Multi-stage builds, healthchecks, init scripts automáticos |
+El presente trabajo desarrolla una plataforma educativa móvil de tipo PWA que integra la gestión de cursos, estudiantes, docentes, evaluaciones, quizzes, entregas y control de asistencia, diseñada con enfoque **offline-first** para garantizar operatividad en entornos con conectividad limitada. El sistema se compone de una API REST construida con Express.js y TypeScript, una base de datos PostgreSQL y un frontend Angular 21 empaquetado como aplicación web instalable, con soporte de sincronización de datos mediante IndexedDB (Dexie.js).
 
 ---
 
-## 🏗️ Arquitectura
+## Índice
+
+- [1. Introducción](#1-introducción)
+- [2. Objetivos](#2-objetivos)
+- [3. Marco Metodológico y Tecnológico](#3-marco-metodológico-y-tecnológico)
+- [4. Arquitectura del Sistema](#4-arquitectura-del-sistema)
+- [5. Modelo de Datos (DER)](#5-modelo-de-datos-der)
+- [6. Componentes del Frontend](#6-componentes-del-frontend)
+- [7. Funcionalidades](#7-funcionalidades)
+- [8. Instalación y Despliegue](#8-instalación-y-despliegue)
+- [9. Estructura del Proyecto](#9-estructura-del-proyecto)
+- [10. Conclusiones](#10-conclusiones)
+- [11. Referencias](#11-referencias)
+
+---
+
+## 1. Introducción
+
+Las instituciones educativas requieren herramientas digitales que permitan centralizar el proceso de enseñanza-aprendizaje: publicación de contenidos, gestión de cursos, seguimiento de estudiantes y evaluación. La **U.E.N. Cacique Tamanaco** enfrenta, además, limitaciones de conectividad que dificultan el uso de plataformas exclusivamente en línea.
+
+Esta plataforma aborda dicha problemática mediante una arquitectura **offline-first**: el estudiante consulta materiales, rinde evaluaciones y registra asistencia incluso sin conexión, y los datos se sincronizan automáticamente al restablecerse la red. El sistema incorpora control de roles (Administrador, Docente y Estudiante), editor visual de cursos, sistema de quizzes con calificación automática, entregas con rúbrica 0–20 y reportes exportables a CSV.
+
+---
+
+## 2. Objetivos
+
+### 2.1 Objetivo General
+
+Desarrollar una plataforma educativa móvil (PWA) que gestione el proceso de enseñanza-aprendizaje de la U.E.N. Cacique Tamanaco, garantizando su operatividad en escenarios sin conexión a internet.
+
+### 2.2 Objetivos Específicos
+
+- Diseñar un modelo de datos relacional que integre usuarios, cursos, matrículas, evaluaciones, quizzes y asistencia.
+- Implementar una API REST segura (JWT + cifrado AES-256) para la gestión de los recursos académicos.
+- Construir un frontend responsive con editor visual de cursos y soporte offline mediante IndexedDB.
+- Desplegar la aplicación mediante contenedores Docker con inicialización automática de la base de datos.
+
+---
+
+## 3. Marco Metodológico y Tecnológico
+
+| Tecnología | Versión | Rol |
+|------------|---------|-----|
+| Angular | 21 | Frontend (SPA, standalone components) |
+| Express.js | 4.x | API REST (TypeScript) |
+| PostgreSQL | 16 | Base de datos relacional |
+| Docker | 27 | Orquestación de servicios |
+| PWA | — | Instalable, offline-first |
+| Chart.js | — | Visualización de reportes |
+| Playwright | — | Pruebas end-to-end |
+
+**Cifrado y autenticación:** JWT para sesiones, bcrypt para contraseñas y AES-256-CBC para documentos personales sensibles.
+
+---
+
+## 4. Arquitectura del Sistema
+
+La aplicación se distribuye en dos contenedores: el frontend servido por NGINX (PWA) y el backend Express. El navegador almacena datos offline en IndexedDB y sincroniza con la API al recuperar conectividad.
 
 ```mermaid
-graph TB
-    subgraph "🌐 Navegador"
-        PWA[PWA Angular 21<br/>Service Worker<br/>IndexedDB Offline]
+flowchart LR
+    subgraph NAV["Navegador"]
+        PWA["PWA Angular 21 - Service Worker - IndexedDB"]
     end
 
-    subgraph "🐳 Docker Compose"
-        NGINX[NGINX :80<br/>Proxy reverso]
-        BACKEND[Express.js :3000<br/>TypeScript<br/>JWT Auth]
-        DB[(PostgreSQL 16<br/>:5432)]
+    subgraph DOCK["Docker Compose"]
+        NGINX["NGINX :80 - Proxy reverso"]
+        BACKEND["Express.js :3000 - TypeScript - JWT Auth"]
+        DB[("PostgreSQL 16 :5432")]
     end
 
-    PWA -->|HTTP| NGINX
-    NGINX -->|/api/*| BACKEND
-    BACKEND -->|pg pool| DB
-    PWA -.->|offline| PWA
-    PWA -->|sync| BACKEND
+    PWA -->|"HTTP"| NGINX
+    NGINX -->|"/api/*"| BACKEND
+    BACKEND -->|"pg pool"| DB
+    PWA -->|"offline"| PWA
+    PWA -->|"sync"| BACKEND
 ```
 
----
-
-## 📋 Requisitos
-
-- **Docker Engine** ≥ 24.x + **Docker Compose** V2
-- **Git** (para clonar)
-- 2 GB RAM libre
-- Puertos **80** (frontend) y **3000** (API) disponibles
-- Opcional: **Node.js 20+** y **npm 10+** (solo desarrollo)
 
 ---
 
-## 🚀 Instalación
+## 5. Modelo de Datos (DER)
 
-### Opción A: Docker (recomendado) — **Sin necesidad de .env**
+El esquema relacional se presenta en tres niveles: un **mapa conceptual** de módulos funcionales, el **DER completo** por subsistemas y **diagramas de tablas con atributos** por módulo.
 
-```bash
-# 1. Clonar rama v1.0
-git clone -b v1.0 https://github.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco.git
-cd Plataforma_Educativa_Cacique_Tamanaco
-
-# 2. Construir y levantar (SIN .env — secrets se auto-generan)
-docker compose up --build -d
-
-# 3. Verificar
-docker compose ps
-curl http://localhost/api/health
-```
-
-**¡Listo!** Abre http://localhost en tu navegador.
-
-> 💡 **No necesitas crear `.env`.** Si existe, sus valores tienen prioridad.
-> Si no existe, Postgres usa `postgres:postgres` por defecto y los secrets
-> (JWT, cifrado AES) se auto-generan con `crypto.randomBytes(32)` en el primer
-> arranque y se persisten en un volumen Docker dedicado (`cacique_secrets`).
-
-### Opción B: Sin Docker (desarrollo manual)
-
-```bash
-# Requiere Node.js 20+ y PostgreSQL 16 instalados
-
-# 1. Clonar
-git clone -b v1.0 https://github.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco.git
-cd Plataforma_Educativa_Cacique_Tamanaco
-
-# 2. Crear .env con conexión a tu PostgreSQL local
-cp .env.example .env
-# Editar .env con tus datos locales
-nano .env
-
-# 3. Backend
-cd backend
-cp .env.example .env     # Configurar conexión a PostgreSQL
-npm ci
-npm run build
-npm start                # API en :3000
-
-# 4. Frontend (otra terminal)
-cd frontend
-npm ci
-npx ng serve             # Dev server en :4200
-```
-
----
-
-## 🔐 Acceso inicial
-
-| Campo | Valor |
-|-------|-------|
-| URL | http://localhost |
-| Email (seed) | `admin@admin.com` |
-| Contraseña (seed) | `admin` |
-| Rol | Administrador |
-
-> 💡 **Primer arranque sin seeds:** Si eliminas los scripts de init, la app
-> muestra un **Setup Wizard** automático al entrar a http://localhost.
-> Crea el admin desde la web — sin terminal, sin `.env`.
-
-> ⚠️ Si usas los seeds, cambia la contraseña desde el panel de usuarios.
-
----
-
-## � Configuración de Secrets (auto-generación)
-
-v0.1 introduce un sistema de auto-generación de claves que elimina la dependencia de `.env`:
-
-| Secreto | Generación | Persistencia |
-|---------|-----------|--------------|
-| `JWT_SECRET` | `crypto.randomBytes(32).toString('hex')` | Volumen `cacique_secrets` |
-| `ENCRYPTION_KEY` | `crypto.randomBytes(32).toString('hex')` | Volumen `cacique_secrets` |
-| `ENCRYPTION_IV` | `crypto.randomBytes(16).toString('hex')` | Volumen `cacique_secrets` |
-
-**Prioridad:**
-1. Variables de entorno (`.env` o `environment` en compose)
-2. Archivo `/app/data/.secrets.json` persistido (re-arranques)
-3. Auto-generación fresca si no existe nada
-
-El módulo `backend/src/config.ts` centraliza toda la lógica. Los secrets se
-guardan en `/app/data/.secrets.json` con permisos `0600` dentro de un volumen
-Docker dedicado, aislado del host.
-
-```
-.
-├── docker-compose.yml          # Orquestación de servicios + volumen cacique_secrets
-├── .env.example                # Plantilla de variables de entorno (ahora opcional)
-├── .gitignore
-│
-├── backend/                    # API REST (Express + TypeScript)
-│   ├── Dockerfile
-│   ├── src/
-│   │   ├── app.ts              # Entry point + middlewares + rutas
-│   │   ├── config.ts           # ⭐ Central de secrets (auto-generación JWT/AES)
-│   │   ├── db.ts               # Pool PostgreSQL
-│   │   ├── controllers/        # Lógica de negocio (12 controladores)
-│   │   ├── middleware/         # Auth (JWT) + Upload (multer)
-│   │   ├── routes/             # Definición de endpoints
-│   │   └── utils/              # Crypto (AES-256)
-│   └── __tests__/              # Tests unitarios
-│
-├── frontend/                   # PWA (Angular 21 standalone)
-│   ├── Dockerfile
-│   ├── nginx.conf              # Proxy reverso → backend
-│   ├── src/app/
-│   │   ├── core/               # Servicios, interceptores, modelos, utils
-│   │   │   └── utils/          # theme.util.ts (tema oscuro/claro unificado)
-│   │   └── features/           # Course editor, Quiz player, Setup Wizard ⭐
-│   └── public/                 # favicon.ico, manifest.webmanifest, icons/
-│
-├── init-scripts/               # SQL auto-ejecutables (DDL + DML + migrations)
-│   ├── 01_ddl.sql              # Esquema de tablas
-│   ├── 02_dml.sql              # Usuario admin seed
-│   ├── 03_migration_canvas.sql # Migración editor canvas
-│   ├── 04_quiz.sql             # Sistema de quizzes
-│   ├── 05_e2e_seed.sql         # Datos demo para pruebas E2E
-│   ├── 05_migracion_fecha_asistencia.sql
-│   ├── 06_sesiones_asistencia.sql # Migración asistencia por sesiones diarias
-│   ├── 07_entregas_tarea.sql   # Tablas de entregas (migrada en 08)
-│   └── 08_migrar_tareas_a_evaluaciones.sql # ⭐ Tareas → evaluaciones
-│
-├── e2e-tests/                  # Tests end-to-end (Playwright)
-├── offline-package/            # Paquete para despliegue sin internet
-│   ├── run-offline.sh          # Script de instalación offline
-│   ├── docker-images/          # Imágenes .tar pre-construidas
-│   └── README-OFFLINE.md
-│
-└── uploads/entregas/           # Archivos subidos (persistente)
-```
-
----
-
-## 🛠️ Comandos útiles
-
-```bash
-# Ver estado de servicios
-docker compose ps
-
-# Ver logs en tiempo real
-docker compose logs -f backend
-docker compose logs -f frontend
-
-# Reiniciar un servicio
-docker compose restart backend
-
-# Detener todo
-docker compose down
-
-# Detener y borrar datos (⚠️ BD se pierde)
-docker compose down -v
-
-# Reconstruir después de cambios
-docker compose up --build -d
-
-# Etiquetar y publicar imágenes en Docker Hub
-docker tag cacique-backend:latest <usuario>/cacique-backend:latest
-docker tag cacique-frontend:latest <usuario>/cacique-frontend:latest
-docker push <usuario>/cacique-backend:latest
-docker push <usuario>/cacique-frontend:latest
-
-# Backup de BD (reemplazar USER por el de tu .env, o postgres si usas defaults)
-docker exec cacique-postgres pg_dump -U postgres cacique_tamanaco_db > backup.sql
-
-# Restaurar BD
-docker exec -i cacique-postgres psql -U postgres cacique_tamanaco_db < backup.sql
-```
-
----
-
-## 📱 Funcionalidades
-
-### 📊 Dashboard
-Panel KPI con métricas en tiempo real, gráficos interactivos (Chart.js), acceso rápido a todas las secciones.
-
-### ⚙️ Setup Wizard (Primer Arranque)
-Si no hay semillas precargadas, la app detecta la ausencia de admin y redirige
-al **Setup Wizard** automático. Paso a paso: configuración del servidor, creación
-del admin y confirmación. Sin terminal, sin `.env`.
-
-### 👥 Gestión de Usuarios
-CRUD completo con roles: **Administrador**, **Docente**, **Estudiante**. Filtros por rol, búsqueda, modal de creación/edición.
-
-### 📖 Cursos y Clases
-Cursos con estructura modular expansible. Cada curso contiene clases con evaluaciones, materiales y recursos. Matriculación de estudiantes.
-
-### ✏️ Editor Visual Canvas
-Editor drag-and-drop para estructurar cursos visualmente. Módulos → Lecciones → Evaluaciones/Quizzes/Materiales. Inspector lateral de propiedades. Soporte para undo/redo.
-
-### 🎯 Sistema de Quizzes
-Creación de quizzes con preguntas de opción múltiple o verdadero/falso. Tiempo límite configurable. Calificación automática. Tracking de intentos por estudiante.
-
-### 📝 Entregas y Calificaciones
-Subida de entregas de evaluaciones en PDF/Word o mediante enlace URL. Calificación con notas preliminares y definitivas. Escala 0-20 puntos.
-
-### ✅ Control de Asistencia
-Registro diario con estados: presente, ausente, justificado. Funciona sin conexión — sincroniza al reconectar.
-
-### 📊 Reportes
-- **Asistencia general**: porcentajes por curso y estudiante
-- **Rendimiento por curso**: promedios, entregas completadas
-- **Asistencia por género**: distribución demográfica
-- **Exportación CSV** descargable
-
----
-
-## 📊 Diagramas
-
-> Diagramas Mermaid generados desde el esquema real (`init-scripts/`) y los
-> componentes del frontend (`frontend/src/app/`). Versión completa en
-> [`docs/DIAGRAMAS.md`](docs/DIAGRAMAS.md).
-
-### Base de datos
-
-Para la defensa de tesis, el DER se presenta en **dos niveles de abstracción**:
-un **mapa conceptual** de módulos funcionales (macro) y **diagramas de detalle**
-segmentados por subsistema.
-
-#### Mapa conceptual de módulos (macro)
+### 5.1 Mapa conceptual de módulos (macro)
 
 ```mermaid
 flowchart LR
     subgraph LMS["SISTEMA LMS / SGA"]
         direction LR
-        M1["1. USUARIOS Y COMUNICACION<br/>usuarios - documentos_personales<br/>asistencias_trabajadores"]
-        M2["2. ESTRUCTURA ACADEMICA<br/>cursos - modulos - clases<br/>materiales - materiales_curso"]
-        M3["3. MATRICULA Y TRAMITES<br/>matriculas - curso_estudiantes<br/>exposicion_motivos - constancias_estudio"]
-        M4["4. EVALUACIONES Y QUIZZES<br/>evaluaciones - entregas_evaluacion<br/>calificaciones - quizzes + respuestas"]
-        M5["5. SEGUIMIENTO Y ASISTENCIA<br/>sesiones_asistencia - asistencias_alumnos<br/>asistencias_trabajadores - progreso_material"]
+        M1["1. USUARIOS Y COMUNICACION: usuarios, documentos_personales, asistencias_trabajadores"]
+        M2["2. ESTRUCTURA ACADEMICA: cursos, modulos, clases, materiales, materiales_curso"]
+        M3["3. MATRICULA Y TRAMITES: matriculas, curso_estudiantes, exposicion_motivos, constancias_estudio"]
+        M4["4. EVALUACIONES Y QUIZZES: evaluaciones, entregas_evaluacion, calificaciones, quizzes"]
+        M5["5. SEGUIMIENTO Y ASISTENCIA: sesiones_asistencia, asistencias_alumnos, progreso_material"]
     end
     M1 <--> M2
     M2 <--> M3
@@ -329,7 +126,8 @@ flowchart LR
     M4 <--> M5
 ```
 
-#### Diagrama ER completo estructurado por subsistemas (detalle)
+
+### 5.2 Diagrama ER completo por subsistemas (detalle)
 
 ```mermaid
 erDiagram
@@ -390,12 +188,14 @@ erDiagram
     usuarios ||--o{ progreso_material : "avanza"
 ```
 
-#### Diagrama de tablas por módulo (entidades y atributos)
 
-Cada módulo se presenta en una diapositiva independiente para evitar el
-diagrama monolítico ilegible.
+### 5.3 Diagramas de tablas por módulo (entidades y atributos)
+
+Cada módulo se presenta en una diapositiva independiente para evitar el diagrama monolítico ilegible.
 
 **Módulo 1: Usuarios y Comunicación**
+
+> Usuarios, documentos personales y asistencia de trabajadores.
 
 ```mermaid
 erDiagram
@@ -433,7 +233,10 @@ erDiagram
     }
 ```
 
+
 **Módulo 2: Estructura Académica y Contenidos**
+
+> Cursos, módulos, clases, materiales y materiales por clase.
 
 ```mermaid
 erDiagram
@@ -490,7 +293,10 @@ erDiagram
     }
 ```
 
+
 **Módulo 3: Matrícula y Trámites**
+
+> Matrículas, curso-estudiantes, exposición de motivos y constancias.
 
 ```mermaid
 erDiagram
@@ -527,7 +333,10 @@ erDiagram
     }
 ```
 
+
 **Módulo 4: Evaluaciones, Entregas y Quizzes**
+
+> Evaluaciones, entregas, calificaciones y el subsistema de quizzes.
 
 ```mermaid
 erDiagram
@@ -612,7 +421,10 @@ erDiagram
     }
 ```
 
+
 **Módulo 5: Seguimiento y Asistencia**
+
+> Sesiones de asistencia, asistencias por alumno y progreso de material.
 
 ```mermaid
 erDiagram
@@ -659,7 +471,8 @@ erDiagram
     }
 ```
 
-#### Sub-diagramas modulares para diapositivas
+
+### 5.4 Subsistemas de detalle (diapositivas de apoyo)
 
 **A. Subsistema de Evaluaciones y Quizzes**
 
@@ -675,6 +488,7 @@ erDiagram
     quiz_preguntas ||--o{ quiz_respuestas : "valida"
 ```
 
+
 **B. Subsistema de Control de Asistencia y Progreso**
 
 ```mermaid
@@ -688,16 +502,16 @@ erDiagram
     usuarios ||--o{ progreso_material : "avanza"
 ```
 
-> 💡 **Puntos clave para el jurado:**
-> - La relación opcional entre `modulos` y `clases` permite flexibilidad si un
->   curso no requiere estructuración formal en módulos.
-> - La separación entre `evaluaciones` convencionales y `quizzes` permite
->   trazabilidad granular de respuestas por pregunta/intento sin sobrecargar
->   la tabla de calificaciones.
 
-### Componentes y sus funciones
+> **Puntos clave:** la relación opcional entre `modulos` y `clases` permite flexibilidad estructural; la separación entre `evaluaciones` convencionales y `quizzes` garantiza trazabilidad granular de respuestas por intento.
 
-#### Vista general (solo nombres)
+---
+
+## 6. Componentes del Frontend
+
+La aplicación sigue el patrón **container/presentational** con componentes standalone de Angular 21. A continuación se documentan el árbol de dependencias (vista general) y las responsabilidades de cada componente.
+
+### 6.1 Vista general (dependencias)
 
 ```mermaid
 flowchart TD
@@ -763,7 +577,8 @@ flowchart TD
     RoleGuard --> Reports
 ```
 
-#### auth.service.ts
+
+### auth.service.ts
 
 ```mermaid
 flowchart LR
@@ -775,7 +590,8 @@ flowchart LR
     A --> m6["restoreSession()"]
 ```
 
-#### toast.service.ts
+
+### toast.service.ts
 
 ```mermaid
 flowchart LR
@@ -787,7 +603,8 @@ flowchart LR
     T --> m6["remove()"]
 ```
 
-#### offline-storage.service.ts
+
+### offline-storage.service.ts
 
 ```mermaid
 flowchart LR
@@ -798,7 +615,8 @@ flowchart LR
     O --> m5["getPendingEvaluaciones()"]
 ```
 
-#### course-editor-store.service.ts
+
+### course-editor-store.service.ts
 
 ```mermaid
 flowchart LR
@@ -817,21 +635,24 @@ flowchart LR
     S --> m13["seleccionarElemento()"]
 ```
 
-#### auth.guard.ts
+
+### auth.guard.ts
 
 ```mermaid
 flowchart LR
     G["auth.guard.ts"] --> m1["authGuard() - redirige a login si no hay sesion"]
 ```
 
-#### role.guard.ts
+
+### role.guard.ts
 
 ```mermaid
 flowchart LR
     R["role.guard.ts"] --> m1["roleGuard(roles) - valida rol/admin"]
 ```
 
-#### theme.util.ts
+
+### theme.util.ts
 
 ```mermaid
 flowchart LR
@@ -839,7 +660,8 @@ flowchart LR
     U --> m2["loadTheme()"]
 ```
 
-#### AppComponent (app shell)
+
+### AppComponent (app shell)
 
 ```mermaid
 flowchart LR
@@ -851,14 +673,16 @@ flowchart LR
     A --> m6["filtra menu por rol"]
 ```
 
-#### login.component.ts
+
+### login.component.ts
 
 ```mermaid
 flowchart LR
     L["login.component.ts"] --> m1["onLogin()"]
 ```
 
-#### dashboard.component.ts
+
+### dashboard.component.ts
 
 ```mermaid
 flowchart LR
@@ -866,7 +690,8 @@ flowchart LR
     D --> m2["loadDashboard()"]
 ```
 
-#### courses.component.ts
+
+### courses.component.ts
 
 ```mermaid
 flowchart LR
@@ -878,7 +703,8 @@ flowchart LR
     C --> m6["cargarEstudiantesDisponibles()"]
 ```
 
-#### course-editor.component.ts
+
+### course-editor.component.ts
 
 ```mermaid
 flowchart LR
@@ -898,7 +724,8 @@ flowchart LR
     E --> m14["atajos teclado"]
 ```
 
-#### course-preview.component.ts
+
+### course-preview.component.ts
 
 ```mermaid
 flowchart LR
@@ -911,7 +738,8 @@ flowchart LR
     P --> m7["onArchivoSeleccionado()"]
 ```
 
-#### lesson-card.component.ts
+
+### lesson-card.component.ts
 
 ```mermaid
 flowchart LR
@@ -923,7 +751,8 @@ flowchart LR
     LC --> m6["videoError()"]
 ```
 
-#### quiz-player.component.ts
+
+### quiz-player.component.ts
 
 ```mermaid
 flowchart LR
@@ -934,7 +763,8 @@ flowchart LR
     Q --> m5["volver()"]
 ```
 
-#### attendance.component.ts
+
+### attendance.component.ts
 
 ```mermaid
 flowchart LR
@@ -948,7 +778,8 @@ flowchart LR
     AT --> m8["puedeMarcar()"]
 ```
 
-#### reports.component.ts
+
+### reports.component.ts
 
 ```mermaid
 flowchart LR
@@ -957,7 +788,8 @@ flowchart LR
     RP --> m3["descargarCSV()"]
 ```
 
-#### user-management.component.ts
+
+### user-management.component.ts
 
 ```mermaid
 flowchart LR
@@ -970,7 +802,8 @@ flowchart LR
     UM --> m7["deleteUser()"]
 ```
 
-#### my-grades.component.ts
+
+### my-grades.component.ts
 
 ```mermaid
 flowchart LR
@@ -980,12 +813,243 @@ flowchart LR
     MG --> m4["notaFinal()"]
 ```
 
-## 📄 Licencia
+
+---
+
+## 7. Funcionalidades
+
+| Categoría | Funcionalidades |
+|-----------|----------------|
+| **Usuarios** | CRUD completo, roles (Admin/Docente/Estudiante), JWT auth, bcrypt |
+| **Cursos** | Creación, matriculación, estructura modular con clases |
+| **Editor Visual** | Canvas drag & drop, módulos, lecciones, evaluaciones, quizzes, materiales |
+| **Quizzes** | Opción múltiple, verdadero/falso, tiempo límite, calificación automática |
+| **Entregas** | Subida de archivos (PDF/Word), enlaces URL, calificación docente |
+| **Asistencia** | Registro presente/ausente/justificado, soporte offline |
+| **Reportes** | Rendimiento por curso, asistencia general, gráficos Chart.js, exportación CSV |
+| **Documentos** | Cifrado AES-256-CBC para documentos personales sensibles |
+| **Offline-First** | IndexedDB (Dexie.js), sincronización masiva al reconectar |
+| **Tema** | Claro/Oscuro persistente, toggle unificado (`theme.util.ts`) |
+| **Responsive** | Sidebar colapsable, off-canvas móvil, inspector overlay, hamburger menu |
+| **Docker** | Multi-stage builds, healthchecks, init scripts automáticos |
+
+### 7.1 Dashboard
+Panel KPI con métricas en tiempo real, gráficos interactivos (Chart.js) y acceso rápido a todas las secciones.
+
+### 7.2 Setup Wizard (Primer Arranque)
+Si no hay semillas precargadas, la app detecta la ausencia de administrador y redirige al **Setup Wizard**: configuración del servidor, creación del admin y confirmación — sin terminal ni `.env`.
+
+### 7.3 Gestión de Usuarios
+CRUD completo con roles (Administrador, Docente, Estudiante), filtros por rol, búsqueda y modal de creación/edición.
+
+### 7.4 Cursos y Clases
+Cursos con estructura modular expansible. Cada curso contiene clases con evaluaciones, materiales y recursos. Matriculación de estudiantes.
+
+### 7.5 Editor Visual Canvas
+Editor drag-and-drop para estructurar cursos visualmente: Módulos → Lecciones → Evaluaciones/Quizzes/Materiales. Inspector lateral de propiedades y soporte para undo/redo.
+
+### 7.6 Sistema de Quizzes
+Creación de quizzes con preguntas de opción múltiple o verdadero/falso, tiempo límite configurable, calificación automática y tracking de intentos por estudiante.
+
+### 7.7 Entregas y Calificaciones
+Subida de entregas en PDF/Word o mediante enlace URL. Calificación con notas preliminares y definitivas. Escala 0–20 puntos.
+
+### 7.8 Control de Asistencia
+Registro diario con estados (presente, ausente, justificado). Funciona sin conexión y sincroniza al reconectar.
+
+### 7.9 Reportes
+- Asistencia general: porcentajes por curso y estudiante
+- Rendimiento por curso: promedios y entregas completadas
+- Asistencia por género: distribución demográfica
+- Exportación CSV descargable
+
+---
+
+## 8. Instalación y Despliegue
+
+### 8.1 Requisitos
+
+- Docker Engine ≥ 24.x + Docker Compose V2
+- Git
+- 2 GB RAM libre
+- Puertos **80** (frontend) y **3000** (API) disponibles
+- Opcional: Node.js 20+ y npm 10+ (solo desarrollo)
+
+### 8.2 Opción A: Docker (recomendado)
+
+```bash
+# 1. Clonar rama v1.0
+git clone -b v1.0 https://github.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco.git
+cd Plataforma_Educativa_Cacique_Tamanaco
+
+# 2. Construir y levantar (SIN .env — secrets se auto-generan)
+docker compose up --build -d
+
+# 3. Verificar
+docker compose ps
+curl http://localhost/api/health
+```
+
+
+**¡Listo!** Abre http://localhost en tu navegador.
+
+> No necesitas crear `.env`. Si existe, sus valores tienen prioridad. En caso contrario, Postgres usa `postgres:postgres` por defecto y los secrets (JWT, cifrado AES) se auto-generan con `crypto.randomBytes(32)` en el primer arranque, persistiéndose en el volumen dedicado `cacique_secrets`.
+
+### 8.3 Opción B: Sin Docker (desarrollo manual)
+
+```bash
+# Requiere Node.js 20+ y PostgreSQL 16 instalados
+
+# 1. Clonar
+git clone -b v1.0 https://github.com/Hector-dev/Plataforma_Educativa_Cacique_Tamanaco.git
+cd Plataforma_Educativa_Cacique_Tamanaco
+
+# 2. Crear .env con conexión a tu PostgreSQL local
+cp .env.example .env
+# Editar .env con tus datos locales
+nano .env
+
+# 3. Backend
+cd backend
+cp .env.example .env     # Configurar conexión a PostgreSQL
+npm ci
+npm run build
+npm start                # API en :3000
+
+# 4. Frontend (otra terminal)
+cd frontend
+npm ci
+npx ng serve             # Dev server en :4200
+```
+
+
+### 8.4 Acceso inicial
+
+| Campo | Valor |
+|-------|-------|
+| URL | http://localhost |
+| Email (seed) | `admin@admin.com` |
+| Contraseña (seed) | `admin` |
+| Rol | Administrador |
+
+> Si eliminas los scripts de init, la app muestra un **Setup Wizard** automático al entrar a http://localhost. Crea el admin desde la web, sin terminal ni `.env`. Cambia la contraseña seed desde el panel de usuarios.
+
+### 8.5 Comandos útiles
+
+```bash
+# Ver estado de servicios
+docker compose ps
+
+# Ver logs en tiempo real
+docker compose logs -f backend
+docker compose logs -f frontend
+
+# Reiniciar un servicio
+docker compose restart backend
+
+# Detener todo
+docker compose down
+
+# Detener y borrar datos (⚠️ BD se pierde)
+docker compose down -v
+
+# Reconstruir después de cambios
+docker compose up --build -d
+
+# Etiquetar y publicar imágenes en Docker Hub
+docker tag cacique-backend:latest <usuario>/cacique-backend:latest
+docker tag cacique-frontend:latest <usuario>/cacique-frontend:latest
+docker push <usuario>/cacique-backend:latest
+docker push <usuario>/cacique-frontend:latest
+
+# Backup de BD (reemplazar USER por el de tu .env, o postgres si usas defaults)
+docker exec cacique-postgres pg_dump -U postgres cacique_tamanaco_db > backup.sql
+
+# Restaurar BD
+docker exec -i cacique-postgres psql -U postgres cacique_tamanaco_db < backup.sql
+```
+
+
+---
+
+## 9. Estructura del Proyecto
+
+```
+.
+├── docker-compose.yml          # Orquestación de servicios + volumen cacique_secrets
+├── .env.example                # Plantilla de variables de entorno (ahora opcional)
+├── .gitignore
+│
+├── backend/                    # API REST (Express + TypeScript)
+│   ├── Dockerfile
+│   ├── src/
+│   │   ├── app.ts              # Entry point + middlewares + rutas
+│   │   ├── config.ts           # ⭐ Central de secrets (auto-generación JWT/AES)
+│   │   ├── db.ts               # Pool PostgreSQL
+│   │   ├── controllers/        # Lógica de negocio (12 controladores)
+│   │   ├── middleware/         # Auth (JWT) + Upload (multer)
+│   │   ├── routes/             # Definición de endpoints
+│   │   └── utils/              # Crypto (AES-256)
+│   └── __tests__/              # Tests unitarios
+│
+├── frontend/                   # PWA (Angular 21 standalone)
+│   ├── Dockerfile
+│   ├── nginx.conf              # Proxy reverso → backend
+│   ├── src/app/
+│   │   ├── core/               # Servicios, interceptores, modelos, utils
+│   │   │   └── utils/          # theme.util.ts (tema oscuro/claro unificado)
+│   │   └── features/           # Course editor, Quiz player, Setup Wizard ⭐
+│   └── public/                 # favicon.ico, manifest.webmanifest, icons/
+│
+├── init-scripts/               # SQL auto-ejecutables (DDL + DML + migrations)
+│   ├── 01_ddl.sql              # Esquema de tablas
+│   ├── 02_dml.sql              # Usuario admin seed
+│   ├── 03_migration_canvas.sql # Migración editor canvas
+│   ├── 04_quiz.sql             # Sistema de quizzes
+│   ├── 05_e2e_seed.sql         # Datos demo para pruebas E2E
+│   ├── 05_migracion_fecha_asistencia.sql
+│   ├── 06_sesiones_asistencia.sql # Migración asistencia por sesiones diarias
+│   ├── 07_entregas_tarea.sql   # Tablas de entregas (migrada en 08)
+│   └── 08_migrar_tareas_a_evaluaciones.sql # ⭐ Tareas → evaluaciones
+│
+├── e2e-tests/                  # Tests end-to-end (Playwright)
+├── offline-package/            # Paquete para despliegue sin internet
+│   ├── run-offline.sh          # Script de instalación offline
+│   ├── docker-images/          # Imágenes .tar pre-construidas
+│   └── README-OFFLINE.md
+│
+└── uploads/entregas/           # Archivos subidos (persistente)
+```
+
+
+---
+
+## 10. Conclusiones
+
+- La arquitectura **offline-first** permite que estudiantes y docentes continúen la actividad académica sin conexión, sincronizando al recuperar conectividad.
+- La separación de responsabilidades entre **evaluaciones**, **entregas** y **quizzes** garantiza trazabilidad granular del desempeño estudiantil.
+- El uso de contenedores Docker con scripts de inicialización automática simplifica el despliegue y la reproducibilidad del entorno.
+- El control de roles y el cifrado de documentos sensibles responden a los requisitos de seguridad y privacidad del contexto educativo.
+
+---
+
+## 11. Referencias
+
+- Mermaid: Diagramas como código — https://mermaid.js.org
+- Angular: Documentación oficial — https://angular.dev
+- Express.js: Documentación oficial — https://expressjs.com
+- PostgreSQL: Documentación oficial — https://www.postgresql.org/docs
+- Dexie.js: IndexedDB simplificado — https://dexie.org
+- Chart.js: Gráficos interactivos — https://www.chartjs.org
+
+---
+
+## Licencia
 
 MIT © 2026 — Desarrollado para la **U.E.N. Cacique Tamanaco**
 
 ---
 
 <p align="center">
-  <sub>Built with ❤️ using Angular · Express · PostgreSQL · Docker</sub>
+  <sub>Built with Angular · Express · PostgreSQL · Docker</sub>
 </p>
